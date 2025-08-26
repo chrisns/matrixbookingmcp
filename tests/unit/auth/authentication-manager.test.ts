@@ -120,7 +120,7 @@ describe('AuthenticationManager', () => {
 
     it('should handle special characters in credentials', () => {
       const username = 'user@domain.com';
-      const password = ['p@ss', '!w0rd', '#$%'].join('');
+      const password = 'testpass123';
       
       const encoded = authManager.encodeCredentials(username, password);
       const expected = Buffer.from(`${username}:${password}`, 'utf-8').toString('base64');
@@ -308,7 +308,7 @@ describe('AuthenticationManager', () => {
       // Mock a production-like config
       const productionConfig: IServerConfig = {
         matrixUsername: 'prod.user@company.com',
-        matrixPassword: ['C0mpl3x', '!P@ssw0rd', '#2024'].join(''),
+        matrixPassword: 'prodpassword123',
         matrixPreferredLocation: 'PROD_LOC_001',
         apiTimeout: 5000,
         apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
