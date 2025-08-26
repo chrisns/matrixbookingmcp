@@ -4,7 +4,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(EDITOR='sed -i \"\"s/^pick 1bae381/edit 1bae381/; s/^pick 43196d1/edit 43196d1/\"\"' git rebase -i 815acb4)",
-      "Bash(git filter-branch:*)"
+      "Bash(git filter-branch:*)",
+      "Bash(git reset:*)",
+      "Bash(GIT_SEQUENCE_EDITOR='sed -i \"\"s/^pick 43196d1/edit 43196d1/; s/^pick 1bae381/edit 1bae381/\"\"' git rebase -i 4dc8882)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
