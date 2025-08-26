@@ -40,7 +40,7 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     
     const apiRequest: IAPIRequest = {
       method: 'POST',
-      url: `${config.apiBaseUrl}/booking`,
+      url: `${config.apiBaseUrl}/booking?notifyScope=ALL_ATTENDEES`,
       headers,
       body: request
     };

@@ -105,9 +105,12 @@ export class AvailabilityService implements IAvailabilityService {
     const formattedRequest: IAvailabilityRequest = {
       dateFrom,
       dateTo,
-      locationId,
-      duration: request.duration
+      locationId
     };
+    
+    if (request.duration !== undefined) {
+      formattedRequest.duration = request.duration;
+    }
     
     // Validate that dateFrom is before dateTo using centralized validator
     const timeRangeValidation = this.validator.validateTimeRange(dateFrom, dateTo);

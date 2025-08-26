@@ -4,6 +4,7 @@ import { IAuthenticationManager } from '../types/authentication.types.js';
 import { IConfigurationManager } from '../config/config-manager.js';
 import { InputValidator, InputSanitizer } from '../validation/index.js';
 import { IInputValidator, IInputSanitizer } from '../types/validation.types.js';
+import { getCurrentDateString } from '../utils/date-formatting.js';
 
 export class BookingService implements IBookingService {
   private apiClient: IMatrixAPIClient;
@@ -39,12 +40,12 @@ export class BookingService implements IBookingService {
 
   formatBookingRequest(request: Partial<IBookingRequest>): IBookingRequest {
     const config = this.configManager.getConfig();
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const today = getCurrentDateString();
     
     // Apply default values according to spec requirements
-    const defaultTimeFrom = request.timeFrom || `${today}T09:00:00.000Z`;
-    const defaultTimeTo = request.timeTo || `${today}T10:00:00.000Z`;
+    // IMPORTANT: Matrix API expects times in local timezone (no Z suffix), not UTC
+    const defaultTimeFrom = request.timeFrom || `${today}T09:00:00.000`;
+    const defaultTimeTo = request.timeTo || `${today}T10:00:00.000`;
     const defaultLocationId = request.locationId || parseInt(config.matrixPreferredLocation, 10);
     const defaultAttendees = request.attendees || [];
     const defaultExtraRequests = request.extraRequests || [];

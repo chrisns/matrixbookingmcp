@@ -140,9 +140,9 @@ describe('BookingService', () => {
       expect(result.owner.email).toBe('test@example.com');
       expect(result.owner.name).toBe('test@example.com');
 
-      // Validate date formats
-      expect(result.timeFrom).toMatch(/^\d{4}-\d{2}-\d{2}T09:00:00\.000Z$/);
-      expect(result.timeTo).toMatch(/^\d{4}-\d{2}-\d{2}T10:00:00\.000Z$/);
+      // Validate date formats - Matrix API expects local timezone (no Z suffix)
+      expect(result.timeFrom).toMatch(/^\d{4}-\d{2}-\d{2}T09:00:00\.000$/);
+      expect(result.timeTo).toMatch(/^\d{4}-\d{2}-\d{2}T10:00:00\.000$/);
     });
 
     it('should preserve provided values and only apply defaults for missing fields', () => {

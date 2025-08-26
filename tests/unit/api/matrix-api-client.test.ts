@@ -126,19 +126,44 @@ describe('MatrixAPIClient', () => {
         locationId: 1,
         attendees: [],
         extraRequests: [],
+        bookingGroup: { repeatEndDate: '2024-01-01' },
         owner: { id: 1, email: 'test@example.com', name: 'Test User' },
         ownerIsAttendee: true,
-        source: 'API'
+        source: 'WEB'
       };
 
-      const mockBookingResponse: IBookingResponse = {
+      const mockBookingResponse = {
         id: 123,
         status: 'CONFIRMED',
         timeFrom: '2024-01-01T09:00:00.000',
         timeTo: '2024-01-01T17:00:00.000',
-        location: { id: 1, name: 'Test Location' },
+        organisation: { id: 2147924904, name: 'Test Organization' },
+        locationId: 1,
+        locationKind: 'DESK',
         owner: { id: 1, email: 'test@example.com', name: 'Test User' },
-        attendees: []
+        bookedBy: { id: 1, email: 'test@example.com', name: 'Test User' },
+        attendeeCount: 1,
+        ownerIsAttendee: true,
+        source: 'WEB',
+        version: 1,
+        hasExternalNotes: false,
+        isPrivate: false,
+        duration: { millis: 28800000 },
+        possibleActions: {
+          edit: true,
+          cancel: true,
+          approve: false,
+          confirm: false,
+          endEarly: false,
+          changeOwner: false,
+          start: false,
+          viewHistory: true
+        },
+        checkInStatus: 'ALLOWED_LATER',
+        checkInStartTime: '2024-01-01T08:45:00.000',
+        checkInEndTime: '2024-01-01T09:15:00.000',
+        hasStarted: false,
+        hasEnded: false
       };
 
       mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(mockBookingResponse), {
@@ -150,7 +175,7 @@ describe('MatrixAPIClient', () => {
       const result = await client.createBooking(mockBookingRequest, mockCredentials);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://app.matrixbooking.com/api/v1/booking',
+        'https://app.matrixbooking.com/api/v1/booking?notifyScope=ALL_ATTENDEES',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({

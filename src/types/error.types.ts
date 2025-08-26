@@ -22,7 +22,9 @@ export type ErrorType =
   | 'AUTHENTICATION_ERROR'
   | 'VALIDATION_ERROR'
   | 'API_ERROR'
-  | 'SYSTEM_ERROR';
+  | 'SYSTEM_ERROR'
+  | 'AVAILABILITY_ERROR'
+  | 'LOCATION_ERROR';
 
 export interface IErrorHandler {
   handleError(_error: unknown, _type: ErrorType): IErrorResponse;

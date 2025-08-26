@@ -3,8 +3,6 @@
  */
 /* eslint-disable no-unused-vars */
 
-import { ILocation } from './location.types.js';
-
 export interface IAttendee {
   id?: number;
   email: string;
@@ -17,12 +15,17 @@ export interface IOwner {
   name: string;
 }
 
+export interface IBookingGroup {
+  repeatEndDate: string; // YYYY-MM-DD format
+}
+
 export interface IBookingRequest {
   timeFrom: string;  // ISO 8601 format
   timeTo: string;    // ISO 8601 format
   locationId: number;
   attendees: IAttendee[];
   extraRequests: string[];
+  bookingGroup?: IBookingGroup;
   owner: IOwner;
   ownerIsAttendee: boolean;
   source: string;
@@ -33,9 +36,33 @@ export interface IBookingResponse {
   status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
   timeFrom: string;
   timeTo: string;
-  location: ILocation;
+  organisation: { id: number; name: string };
+  locationId: number;
+  locationKind: string;
   owner: IOwner;
-  attendees: IAttendee[];
+  bookedBy: IOwner;
+  attendeeCount: number;
+  ownerIsAttendee: boolean;
+  source: string;
+  version: number;
+  hasExternalNotes: boolean;
+  isPrivate: boolean;
+  duration: { millis: number };
+  possibleActions: {
+    edit: boolean;
+    cancel: boolean;
+    approve: boolean;
+    confirm: boolean;
+    endEarly: boolean;
+    changeOwner: boolean;
+    start: boolean;
+    viewHistory: boolean;
+  };
+  checkInStatus: string;
+  checkInStartTime: string;
+  checkInEndTime: string;
+  hasStarted: boolean;
+  hasEnded: boolean;
 }
 
 export interface IBookingService {
