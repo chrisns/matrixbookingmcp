@@ -113,7 +113,7 @@ describe('Types Index', () => {
 
       expect(_mcpRequest).toBeDefined();
       expect(_mcpResponse).toBeDefined();
-      expect(_mcpMethod).toBe('matrix_booking/create_booking');
+      expect(_mcpMethod).toBe('matrix_booking_create_booking');
     });
 
     it('should export all API types', () => {
