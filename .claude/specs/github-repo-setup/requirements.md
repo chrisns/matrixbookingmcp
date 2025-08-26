@@ -33,7 +33,7 @@ Set up a new GitHub repository at `chrisns/matrixbookingmcp`, configure it as a 
 - **REQ-012**: CI pipeline must run linting checks (`npm run lint`)
 - **REQ-013**: CI pipeline must run type checking (`npm run typecheck`)
 - **REQ-014**: CI pipeline must run all tests (`npm test`)
-- **REQ-015**: CI pipeline must support multiple Node.js versions (16.x, 18.x, 20.x)
+- **REQ-015**: CI pipeline must support Node.js version 22.x
 - **REQ-016**: CI pipeline must run on multiple operating systems (ubuntu-latest, windows-latest, macos-latest)
 
 **Acceptance Criteria:**
@@ -59,7 +59,7 @@ git push -u origin main
 ### CI Pipeline Configuration
 - **File Location**: `.github/workflows/ci.yml`
 - **Trigger Events**: push to main, pull requests to main
-- **Node.js Versions**: 16.x, 18.x, 20.x
+- **Node.js Version**: 22.x
 - **Operating Systems**: ubuntu-latest, windows-latest, macos-latest
 - **Steps**: checkout, setup-node, install deps, lint, typecheck, test
 
