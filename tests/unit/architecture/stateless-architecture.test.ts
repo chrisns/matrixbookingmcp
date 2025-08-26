@@ -54,7 +54,7 @@ describe('Stateless Architecture Validation', () => {
         message: 'Mock response'
       });
       vi.spyOn(apiClient, 'checkAvailability').mockImplementation(mockCheckAvailability);
-      vi.spyOn(authManager, 'getCredentials').mockResolvedValue({
+      vi.spyOn(authManager, 'getCredentials').mockReturnValue({
         username: 'testuser',
         password: 'testpass',
         encodedCredentials: Buffer.from('testuser:testpass').toString('base64')
@@ -70,8 +70,16 @@ describe('Stateless Architecture Validation', () => {
       
       // Verify both calls were independent - each call should pass through its own parameters
       expect(mockCheckAvailability).toHaveBeenCalledTimes(2);
-      expect(mockCheckAvailability).toHaveBeenNthCalledWith(1, request1, `Basic ${Buffer.from('testuser:testpass').toString('base64')}`);
-      expect(mockCheckAvailability).toHaveBeenNthCalledWith(2, request2, `Basic ${Buffer.from('testuser:testpass').toString('base64')}`);
+      expect(mockCheckAvailability).toHaveBeenNthCalledWith(1, request1, {
+        username: 'testuser',
+        password: 'testpass',
+        encodedCredentials: Buffer.from('testuser:testpass').toString('base64')
+      });
+      expect(mockCheckAvailability).toHaveBeenNthCalledWith(2, request2, {
+        username: 'testuser',
+        password: 'testpass',
+        encodedCredentials: Buffer.from('testuser:testpass').toString('base64')
+      });
     });
 
     it('should not cache credentials between requests', () => {
