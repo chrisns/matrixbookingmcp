@@ -11,6 +11,12 @@
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
+    "test:performance": "vitest --run tests/performance/ --testTimeout=15000",
+    "test:performance:watch": "vitest tests/performance/ --testTimeout=15000",
+    "test:performance:coverage": "vitest --coverage tests/performance/ --testTimeout=15000",
+    "test:k6": "k6 run tests/performance/load-test.js",
+    "test:k6:timeout": "k6 run tests/performance/timeout-test.js",
+    "test:k6:quick": "k6 run --duration 30s --vus 5 tests/performance/load-test.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "typecheck": "tsc --noEmit"

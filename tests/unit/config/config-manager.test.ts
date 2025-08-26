@@ -149,8 +149,43 @@ describe('ConfigurationManager', () => {
       const configManager = new ConfigurationManager(false);
       const config = configManager.getConfig();
 
-      const configString = JSON.stringify(config);
-      expect(configString).toContain('secretpassword123');
+      // Verify sensitive data is present in the config object (internal usage)
+      expect(config.matrixPassword).toBe('secretpassword123');
+      
+      // But verify it shouldn't be logged - this is a security test
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      try {
+        // Simulate config being stringified for logging (which we want to prevent)
+        const configString = JSON.stringify(config);
+        console.log('Config loaded:', configString);
+        
+        // Verify the password was logged (this shows the vulnerability exists)
+        expect(configString).toContain('secretpassword123');
+        
+        // In a real implementation, we'd want to ensure this doesn't happen
+        // This test documents the current behavior but highlights the security concern
+      } finally {
+        consoleSpy.mockRestore();
+        consoleErrorSpy.mockRestore();
+      }
+    });
+
+    it('should throw error when accessing config without initialization', () => {
+      // Set up valid environment for construction
+      process.env['MATRIX_USERNAME'] = 'testuser';
+      process.env['MATRIX_PASSWORD'] = 'testpass';
+      process.env['MATRIX_PREFERED_LOCATION'] = 'loc123';
+
+      const configManager = new ConfigurationManager(false);
+      
+      // Manually set serverConfig to null to simulate uninitialized state
+      (configManager as any).serverConfig = null;
+      
+      expect(() => {
+        configManager.getConfig();
+      }).toThrow('Configuration not loaded. Call validateConfig() first.');
     });
   });
 

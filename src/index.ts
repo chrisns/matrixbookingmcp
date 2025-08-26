@@ -7,7 +7,9 @@
  * to provide availability checking and booking functionality.
  */
 
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ConfigurationManager } from './config/index.js';
+import { MatrixBookingMCPServer } from './mcp/index.js';
 
 // Export modules for external use
 export * from './config/index.js';
@@ -15,11 +17,13 @@ export * from './auth/index.js';
 export * from './api/index.js';
 export * from './error/index.js';
 export * from './types/index.js';
+export * from './mcp/index.js';
 
 async function startServer(): Promise<void> {
   try {
     console.log("Matrix Booking MCP Server - Starting up...");
     
+    // Validate configuration first
     const configManager = new ConfigurationManager();
     const config = configManager.getConfig();
     
@@ -28,7 +32,18 @@ async function startServer(): Promise<void> {
     console.log(`API Timeout: ${config.apiTimeout}ms`);
     console.log(`Preferred Location: ${config.matrixPreferredLocation}`);
     
-    console.log("Matrix Booking MCP Server - Ready!");
+    // Initialize MCP server
+    const mcpServer = new MatrixBookingMCPServer();
+    await mcpServer.start();
+    
+    // Set up stdio transport
+    const transport = new StdioServerTransport();
+    console.log("MCP Server transport initialized");
+    
+    // Connect the server to the transport
+    await mcpServer.getServer().connect(transport);
+    
+    console.log("Matrix Booking MCP Server - Ready and connected!");
     
   } catch (error) {
     console.error("Failed to start Matrix Booking MCP Server:");

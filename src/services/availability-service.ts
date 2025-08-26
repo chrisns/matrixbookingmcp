@@ -31,12 +31,14 @@ export class AvailabilityService implements IAvailabilityService {
     this.sanitizer = sanitizer || new InputSanitizer();
   }
 
-  async checkAvailability(request: IAvailabilityRequest): Promise<IAvailabilityResponse> {
+  async checkAvailability(request: Partial<IAvailabilityRequest>): Promise<IAvailabilityResponse> {
     try {
       console.log('AvailabilityService: Checking availability with request:', request);
       
-      // Validate the request before processing
-      this.validateAvailabilityRequest(request);
+      // Validate the request before processing if required fields are present
+      if (request.dateFrom || request.dateTo) {
+        this.validateAvailabilityRequest(request as IAvailabilityRequest);
+      }
       
       // Format the request to ensure all required fields are set
       const formattedRequest = this.formatAvailabilityRequest(request);

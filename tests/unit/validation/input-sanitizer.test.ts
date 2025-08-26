@@ -173,6 +173,20 @@ describe('InputSanitizer', () => {
       const result = sanitizer.sanitizeNumericId('id-123-test');
       expect(result).toBe(123);
     });
+
+    it('should return null for edge cases that result in NaN or invalid numbers', () => {
+      // Test edge cases that specifically trigger the return null condition
+      const edgeCases = [
+        '0', // zero should return null
+        '-0', // negative zero
+        'text-only-no-numbers'  // should result in empty string after cleaning, then NaN
+      ];
+
+      edgeCases.forEach(input => {
+        const result = sanitizer.sanitizeNumericId(input);
+        expect(result).toBeNull();
+      });
+    });
   });
 
   describe('sanitizeApiParameter', () => {

@@ -16,7 +16,7 @@ export interface IMCPResponse<T = unknown> {
     message: string;
     data?: unknown;
   };
-  id?: string | number;
+  id: string | number;
 }
 
 export interface IMCPServer {
@@ -32,11 +32,23 @@ export interface ITransport {
   close(): Promise<void>;
 }
 
+// Updated MCP tool names to match our implementation
 export type MCPMethod = 
-  | 'matrix_booking/check_availability'
-  | 'matrix_booking/create_booking'
-  | 'matrix_booking/get_location';
+  | 'matrix_booking_check_availability'
+  | 'matrix_booking_create_booking' 
+  | 'matrix_booking_get_location';
 
 export interface IMCPHandler<TParams = unknown, TResult = unknown> {
   (_params: TParams): Promise<TResult>;
+}
+
+// Tool result content types for MCP responses
+export interface MCPTextContent {
+  type: 'text';
+  text: string;
+}
+
+export interface MCPToolResult {
+  content: MCPTextContent[];
+  isError?: boolean;
 }

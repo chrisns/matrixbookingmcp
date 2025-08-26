@@ -2,8 +2,8 @@ import { IBookingService, IBookingRequest, IBookingResponse, IOwner } from '../t
 import { IMatrixAPIClient } from '../types/api.types.js';
 import { IAuthenticationManager } from '../types/authentication.types.js';
 import { IConfigurationManager } from '../config/config-manager.js';
-import { InputValidator, InputSanitizer } from '../validation/index.js';
-import { IInputValidator, IInputSanitizer } from '../types/validation.types.js';
+import { InputValidator } from '../validation/index.js';
+import { IInputValidator } from '../types/validation.types.js';
 import { getCurrentDateString } from '../utils/date-formatting.js';
 
 export class BookingService implements IBookingService {
@@ -11,20 +11,16 @@ export class BookingService implements IBookingService {
   private authManager: IAuthenticationManager;
   private configManager: IConfigurationManager;
   private validator: IInputValidator;
-  private sanitizer: IInputSanitizer;
-
   constructor(
     apiClient: IMatrixAPIClient,
     authManager: IAuthenticationManager,
     configManager: IConfigurationManager,
-    validator?: IInputValidator,
-    sanitizer?: IInputSanitizer
+    validator?: IInputValidator
   ) {
     this.apiClient = apiClient;
     this.authManager = authManager;
     this.configManager = configManager;
     this.validator = validator || new InputValidator();
-    this.sanitizer = sanitizer || new InputSanitizer();
   }
 
   async createBooking(request: IBookingRequest): Promise<IBookingResponse> {

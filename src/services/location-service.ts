@@ -4,8 +4,8 @@ import { IConfigurationManager } from '../config/config-manager.js';
 import { IAuthenticationManager } from '../types/authentication.types.js';
 import { IErrorHandler } from '../types/error.types.js';
 import { ErrorHandler } from '../error/error-handler.js';
-import { InputValidator, InputSanitizer } from '../validation/index.js';
-import { IInputValidator, IInputSanitizer } from '../types/validation.types.js';
+import { InputValidator } from '../validation/index.js';
+import { IInputValidator } from '../types/validation.types.js';
 
 export class LocationService implements ILocationService {
   private apiClient: IMatrixAPIClient;
@@ -13,22 +13,18 @@ export class LocationService implements ILocationService {
   private authManager: IAuthenticationManager;
   private errorHandler: IErrorHandler;
   private validator: IInputValidator;
-  private sanitizer: IInputSanitizer;
-
   constructor(
     apiClient: IMatrixAPIClient,
     configManager: IConfigurationManager,
     authManager: IAuthenticationManager,
     errorHandler?: IErrorHandler,
-    validator?: IInputValidator,
-    sanitizer?: IInputSanitizer
+    validator?: IInputValidator
   ) {
     this.apiClient = apiClient;
     this.configManager = configManager;
     this.authManager = authManager;
     this.errorHandler = errorHandler || new ErrorHandler();
     this.validator = validator || new InputValidator();
-    this.sanitizer = sanitizer || new InputSanitizer();
   }
 
   async getLocation(locationId: number): Promise<ILocation> {

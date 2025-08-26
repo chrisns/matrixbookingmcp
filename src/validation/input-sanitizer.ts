@@ -3,7 +3,6 @@ import { IInputSanitizer, ISanitizationOptions } from '../types/validation.types
 export class InputSanitizer implements IInputSanitizer {
   private static readonly HTML_TAG_REGEX = /<[^>]*>/g;
   private static readonly SCRIPT_REGEX = /<script[^>]*>.*?<\/script>/gi;
-  private static readonly DANGEROUS_CHARS_REGEX = /[<>'"&]/g;
   private static readonly EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   sanitizeString(input: string, options?: ISanitizationOptions): string {

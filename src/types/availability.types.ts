@@ -26,6 +26,6 @@ export interface ITimeSlot {
 }
 
 export interface IAvailabilityService {
-  checkAvailability(_request: IAvailabilityRequest): Promise<IAvailabilityResponse>;
+  checkAvailability(_request: Partial<IAvailabilityRequest>): Promise<IAvailabilityResponse>;
   formatAvailabilityRequest(_request: Partial<IAvailabilityRequest>): IAvailabilityRequest;
 }
