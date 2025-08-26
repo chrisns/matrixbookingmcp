@@ -1,10 +1,10 @@
 # Matrix Booking MCP Server
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/chrisns/matrixbookingmcp)
+[![Build Status](https://github.com/chrisns/matrixbookingmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/chrisns/matrixbookingmcp/actions/workflows/ci.yml)
 [![Test Coverage](https://img.shields.io/badge/coverage-90%2B-brightgreen)](https://github.com/chrisns/matrixbookingmcp)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/chrisns/matrixbookingmcp)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.7.3-blue)](https://www.typescriptlang.org/)
 
 A TypeScript MCP (Model Context Protocol) server for Matrix Booking API integration, enabling AI assistants to automatically check room availability and create bookings through natural language interactions.
@@ -21,8 +21,8 @@ A TypeScript MCP (Model Context Protocol) server for Matrix Booking API integrat
 
 ## 📋 Requirements
 
-- **Node.js**: ≥18.0.0
-- **Package Manager**: pnpm (recommended)
+- **Node.js**: ≥22.0.0
+- **Package Manager**: npm (supported)
 - **Matrix Booking Account**: Valid credentials required
 
 ## 📦 Installation
