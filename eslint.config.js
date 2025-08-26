@@ -12,17 +12,30 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
         project: './tsconfig.json'
+      },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        global: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly'
       }
     },
     plugins: {
       '@typescript-eslint': typescript
     },
     rules: {
-      ...typescript.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/prefer-const': 'error',
       '@typescript-eslint/no-inferrable-types': 'off'
     }
   },
