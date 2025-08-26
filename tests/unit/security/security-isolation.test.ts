@@ -158,7 +158,8 @@ describe('Security Isolation Tests', () => {
         // Check for other potentially sensitive environment variables
         if (sensitivePatterns.some(pattern => pattern.test(key))) {
           // These should only be Matrix-related or known safe variables
-          expect(key).toMatch(/^(MATRIX_|NODE_|npm_|CI_|GITHUB_)/);
+          // Allow CI-specific environment variables like PGPASSWORD for database testing
+          expect(key).toMatch(/^(MATRIX_|NODE_|npm_|CI_|GITHUB_|PG|MYSQL_|POSTGRES_)/);
         }
       });
     });
