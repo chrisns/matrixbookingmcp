@@ -5,8 +5,8 @@
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import { http, HttpResponse, delay } from 'msw';
-import { server, withHandlers } from '../mocks/setup.js';
-import { createCustomHandler, createDelayedHandler, errorHandlers } from '../mocks/matrix-api.handlers.js';
+import { withHandlers } from '../mocks/setup.js';
+import { createCustomHandler, createDelayedHandler } from '../mocks/matrix-api.handlers.js';
 import { mockErrorResponses, createMockLocation, createMockAvailabilityResponse } from '../mocks/test-data.js';
 import { MatrixAPIClient } from '../../src/api/matrix-api-client.js';
 import { AuthenticationManager } from '../../src/auth/authentication-manager.js';
@@ -25,9 +25,9 @@ describe('MSW Integration Tests', () => {
     originalEnv = { ...process.env };
     
     // Set required environment variables for tests
-    process.env.MATRIX_USERNAME = 'test-user';
-    process.env.MATRIX_PASSWORD = 'test-password';
-    process.env.MATRIX_PREFERED_LOCATION = '1';
+    process.env['MATRIX_USERNAME'] = 'test-user';
+    process.env['MATRIX_PASSWORD'] = 'test-password';
+    process.env['MATRIX_PREFERED_LOCATION'] = '1';
     
     // Initialize components after setting environment variables
     configManager = new ConfigurationManager();

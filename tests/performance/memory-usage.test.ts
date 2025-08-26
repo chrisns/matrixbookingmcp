@@ -100,7 +100,8 @@ describe('Memory Usage Performance Testing', () => {
       }
 
       const finalMemory = memorySnapshots[memorySnapshots.length - 1];
-      const memoryIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
+      expect(finalMemory).toBeDefined();
+      const memoryIncrease = finalMemory!.heapUsed - initialMemory.heapUsed;
       
       // Memory increase should be reasonable (less than 10MB for 100 requests)
       const maxAllowedIncrease = 10 * 1024 * 1024; // 10MB
@@ -111,7 +112,7 @@ describe('Memory Usage Performance Testing', () => {
 
       console.log(`Memory usage test results:`);
       console.log(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Final heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.log(`Final heap: ${(finalMemory!.heapUsed / 1024 / 1024).toFixed(2)}MB`);
       console.log(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
     });
 
@@ -187,7 +188,7 @@ describe('Memory Usage Performance Testing', () => {
       };
 
       // Create concurrent requests
-      const requestPromises = Array.from({ length: numConcurrentRequests }, (_, i) => 
+      const requestPromises = Array.from({ length: numConcurrentRequests }, (_, _i) => 
         client.checkAvailability(mockRequest, mockCredentials)
       );
 
@@ -243,19 +244,20 @@ describe('Memory Usage Performance Testing', () => {
 
       // Mock different responses for different endpoints
       mockFetch.mockImplementation((url) => {
-        if (url.includes('/availability')) {
+        const urlStr = typeof url === 'string' ? url : url.toString();
+        if (urlStr.includes('/availability')) {
           return Promise.resolve(new Response(JSON.stringify(mockAvailabilityResponse), {
             status: 200,
             statusText: 'OK',
             headers: { 'content-type': 'application/json' }
           }));
-        } else if (url.includes('/booking')) {
+        } else if (urlStr.includes('/booking')) {
           return Promise.resolve(new Response(JSON.stringify(mockBookingResponse), {
             status: 200,
             statusText: 'OK',
             headers: { 'content-type': 'application/json' }
           }));
-        } else if (url.includes('/location')) {
+        } else if (urlStr.includes('/location')) {
           return Promise.resolve(new Response(JSON.stringify(mockLocationResponse), {
             status: 200,
             statusText: 'OK',

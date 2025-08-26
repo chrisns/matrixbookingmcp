@@ -109,7 +109,7 @@ describe('Types Index', () => {
         id: 'test-1'
       };
 
-      const _mcpMethod: Types.MCPMethod = 'matrix_booking/create_booking';
+      const _mcpMethod: Types.MCPMethod = 'matrix_booking_create_booking';
 
       expect(_mcpRequest).toBeDefined();
       expect(_mcpResponse).toBeDefined();
@@ -219,14 +219,38 @@ describe('Types Index', () => {
         status: 'CONFIRMED',
         timeFrom: bookingRequest.timeFrom,
         timeTo: bookingRequest.timeTo,
-        location: location,
+        organisation: { id: 1, name: 'Test Organization' },
+        locationId: location.id,
+        locationKind: 'Conference Room',
         owner: owner,
-        attendees: [attendee]
+        bookedBy: owner,
+        attendeeCount: 1,
+        ownerIsAttendee: false,
+        source: 'test',
+        version: 1,
+        hasExternalNotes: false,
+        isPrivate: false,
+        duration: { millis: 3600000 },
+        possibleActions: {
+          edit: true,
+          cancel: true,
+          approve: false,
+          confirm: false,
+          endEarly: false,
+          changeOwner: false,
+          start: false,
+          viewHistory: false
+        },
+        checkInStatus: 'NOT_CHECKED_IN',
+        checkInStartTime: '',
+        checkInEndTime: '',
+        hasStarted: false,
+        hasEnded: false
       };
 
       expect(bookingResponse.owner.id).toBe(bookingRequest.owner.id);
-      expect(bookingResponse.location.id).toBe(bookingRequest.locationId);
-      expect(bookingResponse.attendees[0]?.id).toBe(attendee.id);
+      expect(bookingResponse.locationId).toBe(bookingRequest.locationId);
+      expect(bookingResponse.attendeeCount).toBeGreaterThan(0);
     });
 
     it('should ensure error types work together', () => {
@@ -257,7 +281,7 @@ describe('Types Index', () => {
 
       const mcpRequest: Types.IMCPRequest = {
         method: 'matrix_booking/check_availability',
-        params: availabilityParams as Record<string, unknown>,
+        params: availabilityParams as unknown as Record<string, unknown>,
         id: 'req-1'
       };
 
@@ -392,9 +416,9 @@ describe('Types Index', () => {
       ];
 
       const validMCPMethods: Types.MCPMethod[] = [
-        'matrix_booking/check_availability',
-        'matrix_booking/create_booking',
-        'matrix_booking/get_location'
+        'matrix_booking_check_availability',
+        'matrix_booking_create_booking',
+        'matrix_booking_get_location'
       ];
 
       const validHttpMethods = ['GET', 'POST', 'PUT', 'DELETE'] as const;

@@ -200,18 +200,42 @@ describe('Booking Types', () => {
         status: 'CONFIRMED',
         timeFrom: '2024-01-01T09:00:00Z',
         timeTo: '2024-01-01T10:00:00Z',
-        location: location,
+        organisation: { id: 1, name: 'Test Organization' },
+        locationId: location.id,
+        locationKind: 'Conference Room',
         owner: owner,
-        attendees: attendees
+        bookedBy: owner,
+        attendeeCount: attendees.length,
+        ownerIsAttendee: true,
+        source: 'matrix-booking-mcp',
+        version: 1,
+        hasExternalNotes: false,
+        isPrivate: false,
+        duration: { millis: 3600000 },
+        possibleActions: {
+          edit: true,
+          cancel: true,
+          approve: false,
+          confirm: false,
+          endEarly: false,
+          changeOwner: false,
+          start: false,
+          viewHistory: false
+        },
+        checkInStatus: 'NOT_CHECKED_IN',
+        checkInStartTime: '',
+        checkInEndTime: '',
+        hasStarted: false,
+        hasEnded: false
       };
 
       expect(response).toHaveProperty('id');
       expect(response).toHaveProperty('status');
       expect(response).toHaveProperty('timeFrom');
       expect(response).toHaveProperty('timeTo');
-      expect(response).toHaveProperty('location');
+      expect(response).toHaveProperty('locationId');
       expect(response).toHaveProperty('owner');
-      expect(response).toHaveProperty('attendees');
+      expect(response).toHaveProperty('attendeeCount');
 
       expect(typeof response.id).toBe('number');
       expect(['CONFIRMED', 'PENDING', 'CANCELLED'].includes(response.status)).toBe(true);
@@ -222,9 +246,33 @@ describe('Booking Types', () => {
         id: 123,
         timeFrom: '2024-01-01T09:00:00Z',
         timeTo: '2024-01-01T10:00:00Z',
-        location: { id: 1, name: 'Room' },
+        organisation: { id: 1, name: 'Test Organization' },
+        locationId: 1,
+        locationKind: 'Conference Room',
         owner: { id: 1, email: 'owner@test.com', name: 'Owner' },
-        attendees: []
+        bookedBy: { id: 1, email: 'owner@test.com', name: 'Owner' },
+        attendeeCount: 0,
+        ownerIsAttendee: true,
+        source: 'matrix-booking-mcp',
+        version: 1,
+        hasExternalNotes: false,
+        isPrivate: false,
+        duration: { millis: 3600000 },
+        possibleActions: {
+          edit: true,
+          cancel: true,
+          approve: false,
+          confirm: false,
+          endEarly: false,
+          changeOwner: false,
+          start: false,
+          viewHistory: false
+        },
+        checkInStatus: 'NOT_CHECKED_IN',
+        checkInStartTime: '',
+        checkInEndTime: '',
+        hasStarted: false,
+        hasEnded: false
       };
 
       const confirmedResponse: IBookingResponse = {
@@ -257,9 +305,33 @@ describe('Booking Types', () => {
             status: 'CONFIRMED',
             timeFrom: request.timeFrom,
             timeTo: request.timeTo,
-            location: { id: request.locationId, name: 'Test Room' },
+            organisation: { id: 1, name: 'Test Organization' },
+            locationId: request.locationId,
+            locationKind: 'Conference Room',
             owner: request.owner,
-            attendees: request.attendees
+            bookedBy: request.owner,
+            attendeeCount: request.attendees.length,
+            ownerIsAttendee: request.ownerIsAttendee,
+            source: request.source,
+            version: 1,
+            hasExternalNotes: false,
+            isPrivate: false,
+            duration: { millis: 3600000 },
+            possibleActions: {
+              edit: true,
+              cancel: true,
+              approve: false,
+              confirm: false,
+              endEarly: false,
+              changeOwner: false,
+              start: false,
+              viewHistory: false
+            },
+            checkInStatus: 'NOT_CHECKED_IN',
+            checkInStartTime: '',
+            checkInEndTime: '',
+            hasStarted: false,
+            hasEnded: false
           };
         }
 
@@ -322,7 +394,7 @@ describe('Booking Types', () => {
 
     it('should handle booking request formatting with defaults', () => {
       class TestBookingService implements IBookingService {
-        async createBooking(request: IBookingRequest): Promise<IBookingResponse> {
+        async createBooking(_request: IBookingRequest): Promise<IBookingResponse> {
           throw new Error('Not implemented for test');
         }
 
@@ -346,7 +418,7 @@ describe('Booking Types', () => {
           };
         }
 
-        validateBookingRequest(request: IBookingRequest): boolean {
+        validateBookingRequest(_request: IBookingRequest): boolean {
           return true;
         }
       }

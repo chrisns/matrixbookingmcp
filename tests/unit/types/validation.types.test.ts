@@ -141,7 +141,7 @@ describe('Validation Types', () => {
   describe('IInputValidator interface', () => {
     it('should define all required validation methods', () => {
       class MockInputValidator implements IInputValidator {
-        validateDate(dateString: string, options?: IDateValidationOptions): IValidationResult {
+        validateDate(dateString: string, _options?: IDateValidationOptions): IValidationResult {
           const isValidISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(dateString);
           return {
             isValid: isValidISO,
@@ -150,7 +150,7 @@ describe('Validation Types', () => {
           };
         }
 
-        validateTimeRange(fromDate: string, toDate: string, options?: IDateValidationOptions): IValidationResult {
+        validateTimeRange(fromDate: string, toDate: string, _options?: IDateValidationOptions): IValidationResult {
           const from = new Date(fromDate);
           const to = new Date(toDate);
           const isValidRange = from < to;
@@ -161,9 +161,9 @@ describe('Validation Types', () => {
           };
         }
 
-        validateLocationId(locationId: number, options?: ILocationValidationOptions): IValidationResult {
+        validateLocationId(locationId: number, _options?: ILocationValidationOptions): IValidationResult {
           const isValidId = Number.isInteger(locationId) && locationId > 0;
-          const isAllowed = !options?.allowedLocationIds || options.allowedLocationIds.includes(locationId);
+          const isAllowed = !_options?.allowedLocationIds || _options.allowedLocationIds.includes(locationId);
           
           return {
             isValid: isValidId && isAllowed,
@@ -208,7 +208,7 @@ describe('Validation Types', () => {
 
     it('should handle edge cases in validation', () => {
       class TestValidator implements IInputValidator {
-        validateDate(dateString: string, options?: IDateValidationOptions): IValidationResult {
+        validateDate(dateString: string, _options?: IDateValidationOptions): IValidationResult {
           try {
             const date = new Date(dateString);
             const isValid = !isNaN(date.getTime());
@@ -217,11 +217,11 @@ describe('Validation Types', () => {
               return { isValid: false, errors: ['Invalid date'] };
             }
 
-            if (options?.minDate && date < options.minDate) {
+            if (_options?.minDate && date < _options.minDate) {
               return { isValid: false, errors: ['Date is before minimum allowed'] };
             }
 
-            if (options?.maxDate && date > options.maxDate) {
+            if (_options?.maxDate && date > _options.maxDate) {
               return { isValid: false, errors: ['Date is after maximum allowed'] };
             }
 
@@ -246,7 +246,7 @@ describe('Validation Types', () => {
           return { isValid: true, errors: [] };
         }
 
-        validateLocationId(locationId: number, options?: ILocationValidationOptions): IValidationResult {
+        validateLocationId(locationId: number, _options?: ILocationValidationOptions): IValidationResult {
           if (!Number.isInteger(locationId)) {
             return { isValid: false, errors: ['Location ID must be an integer'] };
           }

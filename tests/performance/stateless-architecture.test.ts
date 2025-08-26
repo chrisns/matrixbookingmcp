@@ -5,7 +5,7 @@ import { AuthenticationManager } from '../../src/auth/authentication-manager.js'
 import { ErrorHandler } from '../../src/error/error-handler.js';
 import { IAvailabilityRequest } from '../../src/types/availability.types.js';
 import { IBookingRequest } from '../../src/types/booking.types.js';
-import { ICredentials } from '../../src/types/authentication.types.js';
+// import { ICredentials } from '../../src/types/authentication.types.js';
 
 const mockFetch = vi.fn() as MockedFunction<typeof fetch>;
 global.fetch = mockFetch;
@@ -20,11 +20,11 @@ describe('Stateless Architecture Performance Testing', () => {
     originalEnv = { ...process.env };
     
     // Set test environment variables
-    process.env.MATRIX_USERNAME = 'testuser';
-    process.env.MATRIX_PASSWORD = 'testpass';
-    process.env.MATRIX_PREFERED_LOCATION = 'London';
-    process.env.MATRIX_API_TIMEOUT = '5000';
-    process.env.MATRIX_API_BASE_URL = 'https://app.matrixbooking.com/api/v1';
+    process.env['MATRIX_USERNAME'] = 'testuser';
+    process.env['MATRIX_PASSWORD'] = 'testpass';
+    process.env['MATRIX_PREFERED_LOCATION'] = 'London';
+    process.env['MATRIX_API_TIMEOUT'] = '5000';
+    process.env['MATRIX_API_BASE_URL'] = 'https://app.matrixbooking.com/api/v1';
   });
 
   afterEach(() => {
@@ -64,7 +64,7 @@ describe('Stateless Architecture Performance Testing', () => {
 
       // Each client should be able to make requests independently
       const results = await Promise.all(
-        clients.map(async (client, index) => {
+        clients.map(async (client, _index) => {
           const authManager = (client as any).authManager;
           const credentials = authManager.getCredentials();
           return client.checkAvailability(mockRequest, credentials);
@@ -542,9 +542,9 @@ describe('Stateless Architecture Performance Testing', () => {
 
       // With proper stateless design, higher concurrency should not significantly degrade per-request performance
       // The last test (highest concurrency) should not be more than 2x slower per request than the first
-      const firstAvg = results[0].avgPerRequest;
-      const lastAvg = results[results.length - 1].avgPerRequest;
-      const scalingRatio = lastAvg / firstAvg;
+      const firstAvg = results[0]?.avgPerRequest;
+      const lastAvg = results[results.length - 1]?.avgPerRequest;
+      const scalingRatio = (lastAvg && firstAvg) ? lastAvg / firstAvg : 0;
       
       expect(scalingRatio).toBeLessThan(2.0);
       console.log(`Scaling ratio (highest/lowest concurrency): ${scalingRatio.toFixed(2)}`);

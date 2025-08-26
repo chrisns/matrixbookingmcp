@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { ConfigurationManager } from '../../../src/config/config-manager.js';
@@ -15,9 +15,9 @@ describe('Security Isolation Tests', () => {
 
   beforeEach(() => {
     // Clear environment to ensure clean test state
-    delete process.env.MATRIX_USERNAME;
-    delete process.env.MATRIX_PASSWORD;
-    delete process.env.MATRIX_PREFERED_LOCATION;
+    delete process.env['MATRIX_USERNAME'];
+    delete process.env['MATRIX_PASSWORD'];
+    delete process.env['MATRIX_PREFERED_LOCATION'];
   });
 
   afterEach(() => {
@@ -77,26 +77,26 @@ describe('Security Isolation Tests', () => {
   describe('Environment Variable Security', () => {
     it('should handle completely missing environment variables', () => {
       // Ensure all Matrix-related env vars are undefined
-      expect(process.env.MATRIX_USERNAME).toBeUndefined();
-      expect(process.env.MATRIX_PASSWORD).toBeUndefined();
-      expect(process.env.MATRIX_PREFERED_LOCATION).toBeUndefined();
+      expect(process.env['MATRIX_USERNAME']).toBeUndefined();
+      expect(process.env['MATRIX_PASSWORD']).toBeUndefined();
+      expect(process.env['MATRIX_PREFERED_LOCATION']).toBeUndefined();
       
       // Configuration manager should fail gracefully
       expect(() => new ConfigurationManager(false)).toThrow();
     });
 
     it('should reject empty string environment variables', () => {
-      process.env.MATRIX_USERNAME = '';
-      process.env.MATRIX_PASSWORD = '';
-      process.env.MATRIX_PREFERED_LOCATION = '';
+      process.env['MATRIX_USERNAME'] = '';
+      process.env['MATRIX_PASSWORD'] = '';
+      process.env['MATRIX_PREFERED_LOCATION'] = '';
       
       expect(() => new ConfigurationManager(false)).toThrow();
     });
 
     it('should reject whitespace-only environment variables', () => {
-      process.env.MATRIX_USERNAME = '   ';
-      process.env.MATRIX_PASSWORD = '\t\n  \t';
-      process.env.MATRIX_PREFERED_LOCATION = '    ';
+      process.env['MATRIX_USERNAME'] = '   ';
+      process.env['MATRIX_PASSWORD'] = '\t\n  \t';
+      process.env['MATRIX_PREFERED_LOCATION'] = '    ';
       
       expect(() => new ConfigurationManager(false)).toThrow();
     });
@@ -113,9 +113,9 @@ describe('Security Isolation Tests', () => {
       ];
 
       injectionAttempts.forEach(injection => {
-        process.env.MATRIX_USERNAME = `user${injection}`;
-        process.env.MATRIX_PASSWORD = `pass${injection}`;
-        process.env.MATRIX_PREFERED_LOCATION = 'LOC001';
+        process.env['MATRIX_USERNAME'] = `user${injection}`;
+        process.env['MATRIX_PASSWORD'] = `pass${injection}`;
+        process.env['MATRIX_PREFERED_LOCATION'] = 'LOC001';
 
           const configManager = new ConfigurationManager(false);
         const config = configManager.getConfig();
@@ -167,9 +167,9 @@ describe('Security Isolation Tests', () => {
   describe('Memory Security', () => {
     it('should not leak credentials in memory dumps', () => {
       // Set up credentials
-      process.env.MATRIX_USERNAME = 'memorytest';
-      process.env.MATRIX_PASSWORD = 'memorytestpass123';
-      process.env.MATRIX_PREFERED_LOCATION = 'MEM001';
+      process.env['MATRIX_USERNAME'] = 'memorytest';
+      process.env['MATRIX_PASSWORD'] = 'memorytestpass123';
+      process.env['MATRIX_PREFERED_LOCATION'] = 'MEM001';
 
       
       const configManager = new ConfigurationManager(false);
@@ -197,9 +197,9 @@ describe('Security Isolation Tests', () => {
     });
 
     it('should handle rapid credential generation without memory leaks', () => {
-      process.env.MATRIX_USERNAME = 'rapidtest';
-      process.env.MATRIX_PASSWORD = 'rapidtestpass';
-      process.env.MATRIX_PREFERED_LOCATION = 'RAPID001';
+      process.env['MATRIX_USERNAME'] = 'rapidtest';
+      process.env['MATRIX_PASSWORD'] = 'rapidtestpass';
+      process.env['MATRIX_PREFERED_LOCATION'] = 'RAPID001';
 
       
       const configManager = new ConfigurationManager(false);
@@ -218,9 +218,9 @@ describe('Security Isolation Tests', () => {
 
   describe('Network Security Preparation', () => {
     it('should use secure defaults for HTTP headers', () => {
-      process.env.MATRIX_USERNAME = 'nettest';
-      process.env.MATRIX_PASSWORD = 'nettestpass';
-      process.env.MATRIX_PREFERED_LOCATION = 'NET001';
+      process.env['MATRIX_USERNAME'] = 'nettest';
+      process.env['MATRIX_PASSWORD'] = 'nettestpass';
+      process.env['MATRIX_PREFERED_LOCATION'] = 'NET001';
 
       
       const configManager = new ConfigurationManager(false);
@@ -237,9 +237,9 @@ describe('Security Isolation Tests', () => {
     });
 
     it('should verify API base URL is HTTPS', () => {
-      process.env.MATRIX_USERNAME = 'httpstest';
-      process.env.MATRIX_PASSWORD = 'httpstestpass';
-      process.env.MATRIX_PREFERED_LOCATION = 'HTTPS001';
+      process.env['MATRIX_USERNAME'] = 'httpstest';
+      process.env['MATRIX_PASSWORD'] = 'httpstestpass';
+      process.env['MATRIX_PREFERED_LOCATION'] = 'HTTPS001';
 
       const configManager = new ConfigurationManager(false);
       const config = configManager.getConfig();
@@ -252,9 +252,9 @@ describe('Security Isolation Tests', () => {
 
   describe('Error Handling Security', () => {
     it('should not expose sensitive data in error stack traces', () => {
-      process.env.MATRIX_USERNAME = 'errortest';
-      process.env.MATRIX_PASSWORD = 'errortestpass123';
-      process.env.MATRIX_PREFERED_LOCATION = 'ERR001';
+      process.env['MATRIX_USERNAME'] = 'errortest';
+      process.env['MATRIX_PASSWORD'] = 'errortestpass123';
+      process.env['MATRIX_PREFERED_LOCATION'] = 'ERR001';
 
       
       const configManager = new ConfigurationManager(false);

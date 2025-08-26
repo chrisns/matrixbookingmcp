@@ -90,7 +90,7 @@ describe.skip('Performance and Timeout Testing', () => {
 
       // Mock fetch to simulate a hanging request
       mockFetch.mockImplementation(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise((_resolve, reject) => {
           // Use real timers to simulate timeout behavior
           setTimeout(() => {
             reject(new DOMException('The operation was aborted.', 'AbortError'));
@@ -121,7 +121,7 @@ describe.skip('Performance and Timeout Testing', () => {
       };
 
       mockFetch.mockImplementation(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise((_resolve, reject) => {
           setTimeout(() => {
             reject(new DOMException('The operation was aborted.', 'AbortError'));
           }, 5000);
@@ -141,7 +141,7 @@ describe.skip('Performance and Timeout Testing', () => {
       const locationId = 1;
 
       mockFetch.mockImplementation(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise((_resolve, reject) => {
           setTimeout(() => {
             reject(new DOMException('The operation was aborted.', 'AbortError'));
           }, 5000);
@@ -386,10 +386,10 @@ describe.skip('Performance and Timeout Testing', () => {
       const abortError = new Error('The operation was aborted.');
       abortError.name = 'AbortError';
       
-      mockFetch.mockImplementation((url, options) => {
+      mockFetch.mockImplementation((_url, options) => {
         // Simulate the AbortController signal behavior
         if (options?.signal) {
-          return new Promise((resolve, reject) => {
+          return new Promise((_resolve, reject) => {
             const signal = options.signal as AbortSignal;
             if (signal.aborted) {
               reject(abortError);

@@ -168,11 +168,11 @@ describe('Error Types', () => {
   describe('IErrorHandler interface', () => {
     it('should define all required error handling methods', () => {
       class MockErrorHandler implements IErrorHandler {
-        handleError(error: unknown, type: ErrorType): IErrorResponse {
+        handleError(_error: unknown, type: ErrorType): IErrorResponse {
           return {
             error: {
               code: type,
-              message: error instanceof Error ? error.message : 'Unknown error',
+              message: _error instanceof Error ? _error.message : 'Unknown error',
               timestamp: new Date().toISOString()
             },
             httpStatus: this.getStatusCodeForType(type)
@@ -236,7 +236,7 @@ describe('Error Types', () => {
 
     it('should return correct error responses from methods', () => {
       class TestErrorHandler implements IErrorHandler {
-        handleError(error: unknown, type: ErrorType): IErrorResponse {
+        handleError(_error: unknown, type: ErrorType): IErrorResponse {
           return {
             error: {
               code: type,

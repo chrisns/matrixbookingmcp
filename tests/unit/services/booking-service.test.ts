@@ -90,9 +90,33 @@ describe('BookingService', () => {
         status: 'CONFIRMED',
         timeFrom: request.timeFrom,
         timeTo: request.timeTo,
-        location: mockLocation,
+        organisation: { id: 1, name: 'Test Organization' },
+        locationId: mockLocation.id,
+        locationKind: 'Conference Room',
         owner: mockOwner,
-        attendees: [mockAttendee]
+        bookedBy: mockOwner,
+        attendeeCount: 1,
+        ownerIsAttendee: true,
+        source: 'matrix-booking-mcp',
+        version: 1,
+        hasExternalNotes: false,
+        isPrivate: false,
+        duration: { millis: 3600000 },
+        possibleActions: {
+          edit: true,
+          cancel: true,
+          approve: false,
+          confirm: false,
+          endEarly: false,
+          changeOwner: false,
+          start: false,
+          viewHistory: false
+        },
+        checkInStatus: 'NOT_CHECKED_IN',
+        checkInStartTime: '',
+        checkInEndTime: '',
+        hasStarted: false,
+        hasEnded: false
       };
 
       vi.mocked(mockApiClient.createBooking).mockResolvedValue(expectedResponse);
@@ -324,9 +348,33 @@ describe('BookingService', () => {
         status: 'CONFIRMED',
         timeFrom: request.timeFrom,
         timeTo: request.timeTo,
-        location: mockLocation,
+        organisation: { id: 1, name: 'Test Organization' },
+        locationId: mockLocation.id,
+        locationKind: 'Conference Room',
         owner: mockOwner,
-        attendees: []
+        bookedBy: mockOwner,
+        attendeeCount: 0,
+        ownerIsAttendee: true,
+        source: 'matrix-booking-mcp',
+        version: 1,
+        hasExternalNotes: false,
+        isPrivate: false,
+        duration: { millis: 3600000 },
+        possibleActions: {
+          edit: true,
+          cancel: true,
+          approve: false,
+          confirm: false,
+          endEarly: false,
+          changeOwner: false,
+          start: false,
+          viewHistory: false
+        },
+        checkInStatus: 'NOT_CHECKED_IN',
+        checkInStartTime: '',
+        checkInEndTime: '',
+        hasStarted: false,
+        hasEnded: false
       };
 
       vi.mocked(mockApiClient.createBooking).mockResolvedValue(mockResponse);
@@ -353,9 +401,33 @@ describe('BookingService', () => {
         status: 'CONFIRMED',
         timeFrom: request.timeFrom,
         timeTo: request.timeTo,
-        location: mockLocation,
+        organisation: { id: 1, name: 'Test Organization' },
+        locationId: mockLocation.id,
+        locationKind: 'Conference Room',
         owner: mockOwner,
-        attendees: []
+        bookedBy: mockOwner,
+        attendeeCount: 0,
+        ownerIsAttendee: true,
+        source: 'matrix-booking-mcp',
+        version: 1,
+        hasExternalNotes: false,
+        isPrivate: false,
+        duration: { millis: 3600000 },
+        possibleActions: {
+          edit: true,
+          cancel: true,
+          approve: false,
+          confirm: false,
+          endEarly: false,
+          changeOwner: false,
+          start: false,
+          viewHistory: false
+        },
+        checkInStatus: 'NOT_CHECKED_IN',
+        checkInStartTime: '',
+        checkInEndTime: '',
+        hasStarted: false,
+        hasEnded: false
       };
 
       vi.mocked(mockApiClient.createBooking).mockResolvedValue(mockResponse);

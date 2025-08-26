@@ -407,11 +407,11 @@ describe('Location Types', () => {
       const results = await Promise.all(locationPromises);
       
       expect(results).toHaveLength(4);
-      expect(results[0].id).toBe(1);
-      expect(results[1].id).toBe(2);
-      expect(results[2].id).toBe(3);
-      expect(results[3].id).toBe(999);
-      expect(results[3].name).toBe('Cached Preferred Location');
+      expect(results[0]?.id).toBe(1);
+      expect(results[1]?.id).toBe(2);
+      expect(results[2]?.id).toBe(3);
+      expect(results[3]?.id).toBe(999);
+      expect(results[3]?.name).toBe('Cached Preferred Location');
 
       // Test that all locations have async-loaded features
       results.slice(0, 3).forEach(location => {

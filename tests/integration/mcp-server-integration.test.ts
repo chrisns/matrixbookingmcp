@@ -102,18 +102,7 @@ describe('MCP Server Integration Tests', () => {
     it('should handle availability check requests', async () => {
       const server = mcpServer.getServer();
       
-      // Simulate a tool call request
-      const mockRequest = {
-        method: 'tools/call',
-        params: {
-          name: 'matrix_booking_check_availability',
-          arguments: {
-            dateFrom: '2024-01-15T09:00:00.000Z',
-            dateTo: '2024-01-15T17:00:00.000Z',
-            locationId: 1
-          }
-        }
-      };
+      // Simulate a tool call request (structure for reference)
 
       // This would normally be handled by the MCP framework
       // For integration testing, we verify the server is properly configured
@@ -123,23 +112,7 @@ describe('MCP Server Integration Tests', () => {
     it('should handle booking creation requests', async () => {
       const server = mcpServer.getServer();
       
-      const mockRequest = {
-        method: 'tools/call',
-        params: {
-          name: 'matrix_booking_create_booking',
-          arguments: {
-            timeFrom: '2024-01-15T09:00:00.000',
-            timeTo: '2024-01-15T10:00:00.000',
-            locationId: 1,
-            attendees: [
-              {
-                name: 'John Doe',
-                email: 'john.doe@example.com'
-              }
-            ]
-          }
-        }
-      };
+      // Simulate booking tool call request (structure for reference)
 
       expect(server).toBeDefined();
     });
@@ -147,15 +120,7 @@ describe('MCP Server Integration Tests', () => {
     it('should handle location retrieval requests', async () => {
       const server = mcpServer.getServer();
       
-      const mockRequest = {
-        method: 'tools/call',
-        params: {
-          name: 'matrix_booking_get_location',
-          arguments: {
-            locationId: 1
-          }
-        }
-      };
+      // Simulate location tool call request with ID (structure for reference)
 
       expect(server).toBeDefined();
     });
@@ -163,13 +128,7 @@ describe('MCP Server Integration Tests', () => {
     it('should handle location retrieval without locationId (preferred location)', async () => {
       const server = mcpServer.getServer();
       
-      const mockRequest = {
-        method: 'tools/call',
-        params: {
-          name: 'matrix_booking_get_location',
-          arguments: {}
-        }
-      };
+      // Simulate location tool call request (structure for reference)
 
       expect(server).toBeDefined();
     });

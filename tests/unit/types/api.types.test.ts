@@ -55,13 +55,13 @@ describe('API Types', () => {
       const methods: Array<'GET' | 'POST' | 'PUT' | 'DELETE'> = ['GET', 'POST', 'PUT', 'DELETE'];
 
       methods.forEach(method => {
-        const request: IAPIRequest = {
+        const testRequest: IAPIRequest = {
           method,
           url: 'https://api.example.com/test',
           headers: {}
         };
 
-        expect(request.method).toBe(method);
+        expect(testRequest.method).toBe(method);
       });
     });
 
@@ -198,7 +198,7 @@ describe('API Types', () => {
 
       expect(typedResponse.data.available).toBe(true);
       expect(typedResponse.data.slots).toHaveLength(1);
-      expect(typedResponse.data.slots[0].from).toBe('2024-01-01T09:00:00Z');
+      expect(typedResponse.data.slots[0]?.from).toBe('2024-01-01T09:00:00Z');
     });
 
     it('should handle various data types', () => {
@@ -232,7 +232,7 @@ describe('API Types', () => {
   describe('IMatrixAPIClient interface', () => {
     it('should define all required Matrix API client methods', async () => {
       class MockMatrixAPIClient implements IMatrixAPIClient {
-        async checkAvailability(request: IAvailabilityRequest, credentials: ICredentials): Promise<IAvailabilityResponse> {
+        async checkAvailability(request: IAvailabilityRequest, _credentials: ICredentials): Promise<IAvailabilityResponse> {
           return {
             available: true,
             slots: [
@@ -250,22 +250,43 @@ describe('API Types', () => {
           };
         }
 
-        async createBooking(request: IBookingRequest, credentials: ICredentials): Promise<IBookingResponse> {
+        async createBooking(request: IBookingRequest, _credentials: ICredentials): Promise<IBookingResponse> {
           return {
             id: 123,
             status: 'CONFIRMED',
             timeFrom: request.timeFrom,
             timeTo: request.timeTo,
-            location: {
-              id: request.locationId,
-              name: 'Booked Location'
-            },
+            organisation: { id: 1, name: 'Test Organization' },
+            locationId: request.locationId,
+            locationKind: 'Conference Room',
             owner: request.owner,
-            attendees: request.attendees
+            bookedBy: request.owner,
+            attendeeCount: request.attendees.length,
+            ownerIsAttendee: request.ownerIsAttendee,
+            source: request.source,
+            version: 1,
+            hasExternalNotes: false,
+            isPrivate: false,
+            duration: { millis: 3600000 },
+            possibleActions: {
+              edit: true,
+              cancel: true,
+              approve: false,
+              confirm: false,
+              endEarly: false,
+              changeOwner: false,
+              start: false,
+              viewHistory: false
+            },
+            checkInStatus: 'NOT_CHECKED_IN',
+            checkInStartTime: '',
+            checkInEndTime: '',
+            hasStarted: false,
+            hasEnded: false
           };
         }
 
-        async getLocation(locationId: number, credentials: ICredentials): Promise<ILocation> {
+        async getLocation(locationId: number, _credentials: ICredentials): Promise<ILocation> {
           return {
             id: locationId,
             name: `Location ${locationId}`,
@@ -274,7 +295,7 @@ describe('API Types', () => {
           };
         }
 
-        async makeRequest<T>(request: IAPIRequest): Promise<IAPIResponse<T>> {
+        async makeRequest<T>(_request: IAPIRequest): Promise<IAPIResponse<T>> {
           return {
             status: 200,
             statusText: 'OK',
@@ -292,7 +313,7 @@ describe('API Types', () => {
       expect(typeof client.makeRequest).toBe('function');
 
       // Test method functionality
-      const credentials: ICredentials = {
+      const testCredentials: ICredentials = {
         username: 'test',
         password: 'pass',
         encodedCredentials: 'dGVzdDpwYXNz'
@@ -304,18 +325,18 @@ describe('API Types', () => {
         locationId: 123
       };
 
-      const availabilityResponse = await client.checkAvailability(availabilityRequest, credentials);
+      const availabilityResponse = await client.checkAvailability(availabilityRequest, testCredentials);
       expect(availabilityResponse.available).toBe(true);
       expect(availabilityResponse.location.id).toBe(123);
 
-      const location = await client.getLocation(456, credentials);
+      const location = await client.getLocation(456, testCredentials);
       expect(location.id).toBe(456);
       expect(location.name).toBe('Location 456');
     });
 
     it('should handle complex booking operations', async () => {
       class TestMatrixAPIClient implements IMatrixAPIClient {
-        async checkAvailability(request: IAvailabilityRequest, credentials: ICredentials): Promise<IAvailabilityResponse> {
+        async checkAvailability(request: IAvailabilityRequest, _credentials: ICredentials): Promise<IAvailabilityResponse> {
           // Simulate availability check logic
           const isWeekend = new Date(request.dateFrom).getDay() % 6 === 0;
           
@@ -336,7 +357,7 @@ describe('API Types', () => {
           };
         }
 
-        async createBooking(request: IBookingRequest, credentials: ICredentials): Promise<IBookingResponse> {
+        async createBooking(request: IBookingRequest, _credentials: ICredentials): Promise<IBookingResponse> {
           // Simulate booking creation
           const bookingId = Math.floor(Math.random() * 10000);
           
@@ -345,17 +366,37 @@ describe('API Types', () => {
             status: 'CONFIRMED',
             timeFrom: request.timeFrom,
             timeTo: request.timeTo,
-            location: {
-              id: request.locationId,
-              name: 'Confirmed Room',
-              capacity: 12
-            },
+            organisation: { id: 1, name: 'Test Organization' },
+            locationId: request.locationId,
+            locationKind: 'Conference Room',
             owner: request.owner,
-            attendees: request.attendees
+            bookedBy: request.owner,
+            attendeeCount: request.attendees.length,
+            ownerIsAttendee: request.ownerIsAttendee,
+            source: request.source,
+            version: 1,
+            hasExternalNotes: false,
+            isPrivate: false,
+            duration: { millis: 3600000 },
+            possibleActions: {
+              edit: true,
+              cancel: true,
+              approve: false,
+              confirm: false,
+              endEarly: false,
+              changeOwner: false,
+              start: false,
+              viewHistory: false
+            },
+            checkInStatus: 'NOT_CHECKED_IN',
+            checkInStartTime: '',
+            checkInEndTime: '',
+            hasStarted: false,
+            hasEnded: false
           };
         }
 
-        async getLocation(locationId: number, credentials: ICredentials): Promise<ILocation> {
+        async getLocation(locationId: number, _credentials: ICredentials): Promise<ILocation> {
           const locations: Record<number, ILocation> = {
             1: { id: 1, name: 'Small Meeting Room', capacity: 4, features: ['TV'] },
             2: { id: 2, name: 'Large Conference Room', capacity: 20, features: ['projector', 'video conference', 'whiteboard'] },
@@ -368,12 +409,12 @@ describe('API Types', () => {
           };
         }
 
-        async makeRequest<T>(request: IAPIRequest): Promise<IAPIResponse<T>> {
+        async makeRequest<T>(_request: IAPIRequest): Promise<IAPIResponse<T>> {
           // Simulate HTTP request processing
           const delay = Math.random() * 100;
           await new Promise(resolve => setTimeout(resolve, delay));
 
-          if (request.url.includes('error')) {
+          if (_request.url.includes('error')) {
             return {
               status: 500,
               statusText: 'Internal Server Error',
@@ -383,19 +424,19 @@ describe('API Types', () => {
           }
 
           return {
-            status: request.method === 'POST' ? 201 : 200,
-            statusText: request.method === 'POST' ? 'Created' : 'OK',
+            status: _request.method === 'POST' ? 201 : 200,
+            statusText: _request.method === 'POST' ? 'Created' : 'OK',
             headers: {
               'Content-Type': 'application/json',
               'X-Request-ID': 'req-' + Math.random().toString(36).substr(2, 9)
             },
-            data: { success: true, method: request.method } as T
+            data: { success: true, method: _request.method } as T
           };
         }
       }
 
       const client = new TestMatrixAPIClient();
-      const credentials: ICredentials = {
+      const testCredentials: ICredentials = {
         username: 'user',
         password: 'pass',
         encodedCredentials: 'dXNlcjpwYXNz'
@@ -416,13 +457,13 @@ describe('API Types', () => {
         source: 'mcp-server'
       };
 
-      const bookingResponse = await client.createBooking(bookingRequest, credentials);
+      const bookingResponse = await client.createBooking(bookingRequest, testCredentials);
       expect(bookingResponse.status).toBe('CONFIRMED');
-      expect(bookingResponse.attendees).toHaveLength(2);
+      expect(bookingResponse.attendeeCount).toBe(2);
       expect(bookingResponse.owner.email).toBe('owner@example.com');
 
       // Test location details
-      const locationDetails = await client.getLocation(2, credentials);
+      const locationDetails = await client.getLocation(2, testCredentials);
       expect(locationDetails.name).toBe('Large Conference Room');
       expect(locationDetails.capacity).toBe(20);
       expect(locationDetails.features?.includes('projector')).toBe(true);
@@ -441,8 +482,8 @@ describe('API Types', () => {
 
     it('should handle authentication and error scenarios', async () => {
       class ErrorTestAPIClient implements IMatrixAPIClient {
-        async checkAvailability(request: IAvailabilityRequest, credentials: ICredentials): Promise<IAvailabilityResponse> {
-          if (credentials.username === 'invalid') {
+        async checkAvailability(_request: IAvailabilityRequest, _credentials: ICredentials): Promise<IAvailabilityResponse> {
+          if (_credentials.username === 'invalid') {
             throw new Error('Authentication failed');
           }
           
@@ -453,7 +494,7 @@ describe('API Types', () => {
           };
         }
 
-        async createBooking(request: IBookingRequest, credentials: ICredentials): Promise<IBookingResponse> {
+        async createBooking(request: IBookingRequest, _credentials: ICredentials): Promise<IBookingResponse> {
           if (!request.locationId) {
             throw new Error('Location ID is required');
           }
@@ -461,7 +502,7 @@ describe('API Types', () => {
           throw new Error('Room is already booked for this time slot');
         }
 
-        async getLocation(locationId: number, credentials: ICredentials): Promise<ILocation> {
+        async getLocation(locationId: number, _credentials: ICredentials): Promise<ILocation> {
           if (locationId === 999) {
             throw new Error('Location not found');
           }
@@ -472,8 +513,8 @@ describe('API Types', () => {
           };
         }
 
-        async makeRequest<T>(request: IAPIRequest): Promise<IAPIResponse<T>> {
-          if (request.headers['Authorization']?.includes('invalid')) {
+        async makeRequest<T>(_request: IAPIRequest): Promise<IAPIResponse<T>> {
+          if (_request.headers['Authorization']?.includes('invalid')) {
             return {
               status: 401,
               statusText: 'Unauthorized',

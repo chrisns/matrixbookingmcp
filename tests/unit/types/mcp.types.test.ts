@@ -12,7 +12,7 @@ describe('MCP Types', () => {
   describe('IMCPRequest interface', () => {
     it('should define correct MCP request structure', () => {
       const request: IMCPRequest = {
-        method: 'matrix_booking/check_availability',
+        method: 'matrix_booking_check_availability',
         params: {
           dateFrom: '2024-01-01T09:00:00Z',
           dateTo: '2024-01-01T17:00:00Z',
@@ -31,17 +31,17 @@ describe('MCP Types', () => {
 
     it('should handle optional properties', () => {
       const minimalRequest: IMCPRequest = {
-        method: 'matrix_booking/get_location'
+        method: 'matrix_booking_get_location'
       };
 
       expect(minimalRequest.params).toBeUndefined();
       expect(minimalRequest.id).toBeUndefined();
-      expect(minimalRequest.method).toBe('matrix_booking/get_location');
+      expect(minimalRequest.method).toBe('matrix_booking_get_location');
     });
 
     it('should handle numeric id', () => {
       const requestWithNumericId: IMCPRequest = {
-        method: 'matrix_booking/create_booking',
+        method: 'matrix_booking_create_booking',
         id: 456
       };
 
@@ -51,7 +51,7 @@ describe('MCP Types', () => {
 
     it('should handle complex params object', () => {
       const complexRequest: IMCPRequest = {
-        method: 'matrix_booking/create_booking',
+        method: 'matrix_booking_create_booking',
         params: {
           timeFrom: '2024-01-01T09:00:00Z',
           timeTo: '2024-01-01T10:00:00Z',
@@ -121,17 +121,19 @@ describe('MCP Types', () => {
 
     it('should handle optional properties', () => {
       const responseWithoutId: IMCPResponse = {
-        result: { success: true }
+        result: { success: true },
+        id: 'test-1'
       };
 
       const responseWithoutResult: IMCPResponse = {
         error: {
           code: -32600,
           message: 'Invalid request'
-        }
+        },
+        id: 'test-2'
       };
 
-      expect(responseWithoutId.id).toBeUndefined();
+      expect(responseWithoutId.id).toBeDefined();
       expect(responseWithoutResult.result).toBeUndefined();
     });
 
@@ -140,7 +142,8 @@ describe('MCP Types', () => {
         error: {
           code: -32700,
           message: 'Parse error'
-        }
+        },
+        id: 'test-3'
       };
 
       const methodNotFound: IMCPResponse = {
@@ -171,13 +174,13 @@ describe('MCP Types', () => {
 
   describe('MCPMethod type', () => {
     it('should define all expected MCP methods', () => {
-      const checkAvailability: MCPMethod = 'matrix_booking/check_availability';
-      const createBooking: MCPMethod = 'matrix_booking/create_booking';
-      const getLocation: MCPMethod = 'matrix_booking/get_location';
+      const checkAvailability: MCPMethod = 'matrix_booking_check_availability';
+      const createBooking: MCPMethod = 'matrix_booking_create_booking';
+      const getLocation: MCPMethod = 'matrix_booking_get_location';
 
-      expect(checkAvailability).toBe('matrix_booking/check_availability');
-      expect(createBooking).toBe('matrix_booking/create_booking');
-      expect(getLocation).toBe('matrix_booking/get_location');
+      expect(checkAvailability).toBe('matrix_booking_check_availability');
+      expect(createBooking).toBe('matrix_booking_create_booking');
+      expect(getLocation).toBe('matrix_booking_get_location');
     });
 
     it('should restrict to only defined methods', () => {
@@ -185,15 +188,15 @@ describe('MCP Types', () => {
       // const invalidMethod: MCPMethod = 'invalid/method';
 
       const validMethods: MCPMethod[] = [
-        'matrix_booking/check_availability',
-        'matrix_booking/create_booking',
-        'matrix_booking/get_location'
+        'matrix_booking_check_availability',
+        'matrix_booking_create_booking',
+        'matrix_booking_get_location'
       ];
 
       expect(validMethods).toHaveLength(3);
       validMethods.forEach(method => {
         expect(typeof method).toBe('string');
-        expect(method.startsWith('matrix_booking/')).toBe(true);
+        expect(method.startsWith('matrix_booking_')).toBe(true);
       });
     });
   });
@@ -255,7 +258,7 @@ describe('MCP Types', () => {
 
       expect(result.available).toBe(true);
       expect(result.slots).toHaveLength(1);
-      expect(result.slots[0].locationId).toBe(123);
+      expect(result.slots?.[0]?.locationId).toBe(123);
     });
   });
 
@@ -263,7 +266,7 @@ describe('MCP Types', () => {
     it('should define all required MCP server methods', async () => {
       class MockMCPServer implements IMCPServer {
         private handlers: Map<string, IMCPHandler> = new Map();
-        private _running = false;
+        private _running = false; // Used for state tracking in start/stop methods
 
         async start(): Promise<void> {
           this._running = true;
@@ -271,6 +274,10 @@ describe('MCP Types', () => {
 
         async stop(): Promise<void> {
           this._running = false;
+        }
+
+        get isRunning(): boolean {
+          return this._running;
         }
 
         async handleRequest(request: IMCPRequest): Promise<IMCPResponse> {
@@ -281,7 +288,7 @@ describe('MCP Types', () => {
                 code: -32601,
                 message: 'Method not found'
               },
-              id: request.id || undefined
+              id: request.id ?? 0
             };
           }
 
@@ -289,7 +296,7 @@ describe('MCP Types', () => {
             const result = await handler(request.params);
             return {
               result,
-              id: request.id || undefined
+              id: request.id ?? 0
             };
           } catch (error) {
             return {
@@ -298,7 +305,7 @@ describe('MCP Types', () => {
                 message: 'Internal error',
                 data: error instanceof Error ? error.message : 'Unknown error'
               },
-              id: request.id || undefined
+              id: request.id ?? 0
             };
           }
         }
@@ -338,7 +345,7 @@ describe('MCP Types', () => {
         private messageCallback?: (message: IMCPRequest) => void;
         private closed = false;
 
-        async send(message: IMCPResponse): Promise<void> {
+        async send(_message: IMCPResponse): Promise<void> {
           if (this.closed) {
             throw new Error('Transport is closed');
           }

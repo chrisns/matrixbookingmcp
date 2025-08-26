@@ -112,7 +112,7 @@ describe('Graceful Degradation and Error Handling Performance', () => {
       const results = await Promise.all(requestPromises);
 
       // All requests should result in timeout errors
-      results.forEach((result, index) => {
+      results.forEach((result, _index) => {
         expect(result).toBeInstanceOf(Error);
         
         const errorWithResponse = result as Error & { errorResponse?: any };
@@ -447,17 +447,20 @@ describe('Graceful Degradation and Error Handling Performance', () => {
 
       // All error structures should be identical
       const firstStructure = errorStructures[0];
-      errorStructures.forEach(structure => {
-        expect(structure).toEqual(firstStructure);
-      });
+      expect(firstStructure).toBeDefined();
+      if (firstStructure) {
+        errorStructures.forEach(structure => {
+          expect(structure).toEqual(firstStructure);
+        });
 
-      // All should have required fields
-      expect(firstStructure.hasErrorObject).toBe(true);
-      expect(firstStructure.hasErrorCode).toBe(true);
-      expect(firstStructure.hasErrorMessage).toBe(true);
-      expect(firstStructure.hasHttpStatus).toBe(true);
-      expect(firstStructure.hasRequestId).toBe(true);
-      expect(firstStructure.hasTimestamp).toBe(true);
+        // All should have required fields
+        expect(firstStructure.hasErrorObject).toBe(true);
+        expect(firstStructure.hasErrorCode).toBe(true);
+        expect(firstStructure.hasErrorMessage).toBe(true);
+        expect(firstStructure.hasHttpStatus).toBe(true);
+        expect(firstStructure.hasRequestId).toBe(true);
+        expect(firstStructure.hasTimestamp).toBe(true);
+      }
     });
   });
 });

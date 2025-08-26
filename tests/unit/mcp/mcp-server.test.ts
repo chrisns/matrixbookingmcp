@@ -158,7 +158,7 @@ describe('MatrixBookingMCPServer', () => {
 
     it('should test availability service integration through private method', async () => {
       const mockResponse = { rooms: [], message: 'No availability found' };
-      mockAvailabilityService.checkAvailability.mockResolvedValue(mockResponse);
+      (mockAvailabilityService.checkAvailability as any).mockResolvedValue(mockResponse);
 
       // Test the private method by calling it via reflection
       const handleAvailability = (mcpServer as any).handleCheckAvailability;
@@ -180,8 +180,8 @@ describe('MatrixBookingMCPServer', () => {
       const mockFormattedRequest = { timeFrom: '2024-01-15T09:00:00.000', timeTo: '2024-01-15T10:00:00.000' };
       const mockResponse = { bookingId: 12345, status: 'confirmed' };
       
-      mockBookingService.formatBookingRequest.mockReturnValue(mockFormattedRequest);
-      mockBookingService.createBooking.mockResolvedValue(mockResponse);
+      (mockBookingService.formatBookingRequest as any).mockReturnValue(mockFormattedRequest);
+      (mockBookingService.createBooking as any).mockResolvedValue(mockResponse);
 
       // Test the private method by calling it via reflection
       const handleBooking = (mcpServer as any).handleCreateBooking;
@@ -198,7 +198,7 @@ describe('MatrixBookingMCPServer', () => {
 
     it('should test location service integration with locationId through private method', async () => {
       const mockResponse = { locationId: 1, name: 'Test Location', address: '123 Test St' };
-      mockLocationService.getLocation.mockResolvedValue(mockResponse);
+      (mockLocationService.getLocation as any).mockResolvedValue(mockResponse);
 
       // Test the private method by calling it via reflection
       const handleLocation = (mcpServer as any).handleGetLocation;
@@ -212,7 +212,7 @@ describe('MatrixBookingMCPServer', () => {
 
     it('should test location service integration without locationId through private method', async () => {
       const mockResponse = { locationId: 1, name: 'Preferred Location', address: '456 Preferred St' };
-      mockLocationService.getPreferredLocation.mockResolvedValue(mockResponse);
+      (mockLocationService.getPreferredLocation as any).mockResolvedValue(mockResponse);
 
       // Test the private method by calling it via reflection
       const handleLocation = (mcpServer as any).handleGetLocation;
@@ -224,10 +224,10 @@ describe('MatrixBookingMCPServer', () => {
 
     it('should test service error handling through private methods', async () => {
       const errorMessage = 'Service unavailable';
-      mockAvailabilityService.checkAvailability.mockRejectedValue(new Error(errorMessage));
+      (mockAvailabilityService.checkAvailability as any).mockRejectedValue(new Error(errorMessage));
 
       // Test error handling in private method
-      const handleAvailability = (mcpServer as any).handleCheckAvailability;
+      // Test error handling functionality exists
       
       // The error should be caught and handled by the call tool handler
       // We test the service is called, error handling is in the wrapper

@@ -3,7 +3,7 @@ import { MatrixAPIClient } from '../../../src/api/matrix-api-client.js';
 import { IAuthenticationManager, ICredentials } from '../../../src/types/authentication.types.js';
 import { IConfigurationManager, IServerConfig } from '../../../src/config/config-manager.js';
 import { IAvailabilityRequest, IAvailabilityResponse } from '../../../src/types/availability.types.js';
-import { IBookingRequest, IBookingResponse } from '../../../src/types/booking.types.js';
+import { IBookingRequest } from '../../../src/types/booking.types.js';
 import { ILocation } from '../../../src/types/location.types.js';
 import { IAPIRequest } from '../../../src/types/api.types.js';
 import { IErrorHandler } from '../../../src/types/error.types.js';

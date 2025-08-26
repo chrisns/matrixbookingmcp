@@ -186,8 +186,8 @@ export const K6_CONFIG = {
   BASE_URLS: {
     MOCK: 'https://httpbin.org',
     LOCAL: 'http://localhost:3000',
-    STAGING: process.env.STAGING_API_URL || 'https://staging-api.example.com',
-    PRODUCTION: process.env.PRODUCTION_API_URL || 'https://api.matrixbooking.com/api/v1'
+    STAGING: process.env['STAGING_API_URL'] || 'https://staging-api.example.com',
+    PRODUCTION: process.env['PRODUCTION_API_URL'] || 'https://api.matrixbooking.com/api/v1'
   },
 
   HEADERS: {

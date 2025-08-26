@@ -82,7 +82,7 @@ describe('Security Comprehensive Tests', () => {
 
         const results = await Promise.all(concurrentRequests);
         
-        results.forEach((credentials, index) => {
+        results.forEach((credentials, _index) => {
           expect(credentials.username).toBe('securitytestuser');
           expect(credentials.password).toBe('securitytestpass123');
           expect(credentials.encodedCredentials).toBeTruthy();
@@ -269,7 +269,8 @@ describe('Security Comprehensive Tests', () => {
 
         try {
           const credentials = authManager.getCredentials();
-          const headers = authManager.createAuthHeader(credentials);
+          // Test that createAuthHeader doesn't leak sensitive data
+          authManager.createAuthHeader(credentials);
 
           // Check all console calls for sensitive data
           expect(consoleSpy).not.toHaveBeenCalledWith(

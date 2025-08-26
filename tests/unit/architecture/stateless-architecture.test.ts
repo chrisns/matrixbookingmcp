@@ -54,7 +54,11 @@ describe('Stateless Architecture Validation', () => {
         message: 'Mock response'
       });
       vi.spyOn(apiClient, 'checkAvailability').mockImplementation(mockCheckAvailability);
-      vi.spyOn(authManager, 'getCredentials').mockReturnValue('Basic dGVzdHVzZXI6dGVzdHBhc3M=');
+      vi.spyOn(authManager, 'getCredentials').mockResolvedValue({
+        username: 'testuser',
+        password: 'testpass',
+        encodedCredentials: Buffer.from('testuser:testpass').toString('base64')
+      });
 
       // First request
       const request1 = { dateFrom: '2024-01-01T09:00:00.000Z', dateTo: '2024-01-01T17:00:00.000Z', locationId: 1 };
@@ -96,7 +100,7 @@ describe('Stateless Architecture Validation', () => {
         new LocationService(apiClient, configManager, authManager)
       ];
 
-      services.forEach((service, index) => {
+      services.forEach((service, _index) => {
         const serviceKeys = Object.keys(service);
         
         // Should only have dependency injection properties, no state properties
@@ -129,8 +133,17 @@ describe('Stateless Architecture Validation', () => {
 
     it('should process multiple concurrent requests independently', async () => {
       // Mock the service methods to avoid actual API calls
-      const mockAvailabilityResponse = { success: true, availableSlots: [], message: 'Mock availability' };
-      const mockLocationResponse = { success: true, location: { id: 1, name: 'Test Location' }, message: 'Mock location' };
+      const mockAvailabilityResponse = { 
+        available: true, 
+        slots: [], 
+        location: { id: 1, name: 'Test Location', capacity: 10, features: [] }
+      };
+      const mockLocationResponse = { 
+        id: 1, 
+        name: 'Test Location', 
+        capacity: 10, 
+        features: []
+      };
       
       vi.spyOn(mcpServer['availabilityService'], 'checkAvailability').mockResolvedValue(mockAvailabilityResponse);
       vi.spyOn(mcpServer['locationService'], 'getPreferredLocation').mockResolvedValue(mockLocationResponse);
@@ -153,7 +166,7 @@ describe('Stateless Architecture Validation', () => {
         expect(response.content).toHaveLength(1);
         expect(response.content[0]).toHaveProperty('type', 'text');
         expect(response.content[0]).toHaveProperty('text');
-        expect(() => JSON.parse(response.content[0].text)).not.toThrow();
+        expect(() => JSON.parse(response.content[0]?.text || '')).not.toThrow();
       });
 
       // Verify each service method was called with correct parameters
@@ -279,11 +292,15 @@ describe('Stateless Architecture Validation', () => {
 
       // Mock API response to avoid network calls
       vi.spyOn(apiClient, 'checkAvailability').mockResolvedValue({
-        success: true,
-        availableSlots: [],
-        message: 'Mock response'
+        available: true,
+        slots: [],
+        location: { id: 1, name: 'Test Location', capacity: 10, features: [] }
       });
-      vi.spyOn(authManager, 'getCredentials').mockReturnValue('Basic dGVzdA==');
+      vi.spyOn(authManager, 'getCredentials').mockResolvedValue({
+        username: 'testuser',
+        password: 'testpass',
+        encodedCredentials: 'dGVzdA=='
+      });
 
       // Get initial object property count
       const initialPropCount = Object.keys(service).length;

@@ -5,7 +5,6 @@ import { IConfigurationManager, IServerConfig } from '../../../src/config/config
 import { IAuthenticationManager, ICredentials } from '../../../src/types/authentication.types.js';
 import { IErrorHandler } from '../../../src/types/error.types.js';
 import { IAvailabilityRequest, IAvailabilityResponse } from '../../../src/types/availability.types.js';
-import { ILocation } from '../../../src/types/location.types.js';
 
 describe('AvailabilityService', () => {
   let service: AvailabilityService;

@@ -220,7 +220,7 @@ describe('Availability Types', () => {
 
     it('should handle partial availability request formatting', () => {
       class TestAvailabilityService implements IAvailabilityService {
-        async checkAvailability(request: IAvailabilityRequest): Promise<IAvailabilityResponse> {
+        async checkAvailability(_request: IAvailabilityRequest): Promise<IAvailabilityResponse> {
           throw new Error('Not implemented for test');
         }
 

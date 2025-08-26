@@ -112,7 +112,7 @@ describe('Simple Timeout Testing', () => {
         locationId: 1
       };
 
-      mockFetch.mockImplementation((url, options) => {
+      mockFetch.mockImplementation((_url, options) => {
         // Verify AbortSignal is provided
         expect(options?.signal).toBeInstanceOf(AbortSignal);
         
