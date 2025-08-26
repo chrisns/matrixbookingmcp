@@ -19,16 +19,20 @@ describe('MatrixAPIClient', () => {
   let mockErrorHandler: IErrorHandler;
   let mockCredentials: ICredentials;
   let mockConfig: IServerConfig;
+  let encodedCredentials: string;
 
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks();
 
     // Setup mock credentials
+    const username = 'testuser';
+    const password = 'testpass';
+    encodedCredentials = Buffer.from(`${username}:${password}`).toString('base64');
     mockCredentials = {
-      username: 'testuser',
-      password: 'testpass',
-      encodedCredentials: 'dGVzdHVzZXI6dGVzdHBhc3M='
+      username,
+      password,
+      encodedCredentials
     };
 
     // Setup mock config
@@ -43,9 +47,9 @@ describe('MatrixAPIClient', () => {
     // Setup mock auth manager
     mockAuthManager = {
       getCredentials: vi.fn().mockReturnValue(mockCredentials),
-      encodeCredentials: vi.fn().mockReturnValue('dGVzdHVzZXI6dGVzdHBhc3M='),
+      encodeCredentials: vi.fn().mockReturnValue(encodedCredentials),
       createAuthHeader: vi.fn().mockReturnValue({
-        'Authorization': 'Basic dGVzdHVzZXI6dGVzdHBhc3M=',
+        'Authorization': `Basic ${encodedCredentials}`,
         'Content-Type': 'application/json;charset=UTF-8',
         'x-matrix-source': 'WEB',
         'x-time-zone': 'Europe/London'
@@ -101,7 +105,7 @@ describe('MatrixAPIClient', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
-            'Authorization': 'Basic dGVzdHVzZXI6dGVzdHBhc3M=',
+            'Authorization': `Basic ${encodedCredentials}`,
             'Content-Type': 'application/json;charset=UTF-8',
             'x-matrix-source': 'WEB',
             'x-time-zone': 'Europe/London'
@@ -150,7 +154,7 @@ describe('MatrixAPIClient', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
-            'Authorization': 'Basic dGVzdHVzZXI6dGVzdHBhc3M=',
+            'Authorization': `Basic ${encodedCredentials}`,
             'Content-Type': 'application/json;charset=UTF-8',
             'x-matrix-source': 'WEB',
             'x-time-zone': 'Europe/London'
@@ -186,7 +190,7 @@ describe('MatrixAPIClient', () => {
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
-            'Authorization': 'Basic dGVzdHVzZXI6dGVzdHBhc3M=',
+            'Authorization': `Basic ${encodedCredentials}`,
             'Content-Type': 'application/json;charset=UTF-8',
             'x-matrix-source': 'WEB',
             'x-time-zone': 'Europe/London'

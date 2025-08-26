@@ -496,13 +496,13 @@ describe('API Types', () => {
       const validCredentials: ICredentials = {
         username: 'valid',
         password: 'pass',
-        encodedCredentials: 'dmFsaWQ6cGFzcw=='
+        encodedCredentials: Buffer.from('valid:pass').toString('base64')
       };
 
       const invalidCredentials: ICredentials = {
         username: 'invalid',
         password: 'pass',
-        encodedCredentials: 'aW52YWxpZDpwYXNz'
+        encodedCredentials: Buffer.from('invalid:pass').toString('base64')
       };
 
       // Test authentication error

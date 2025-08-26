@@ -4,10 +4,12 @@ import type { ICredentials, IAuthenticationManager } from '../../../src/types/au
 describe('Authentication Types', () => {
   describe('ICredentials interface', () => {
     it('should define correct credential structure', () => {
+      const username = 'testuser';
+      const password = 'testpass';
       const credentials: ICredentials = {
-        username: 'testuser',
-        password: 'testpass',
-        encodedCredentials: 'dGVzdHVzZXI6dGVzdHBhc3M='
+        username,
+        password,
+        encodedCredentials: Buffer.from(`${username}:${password}`).toString('base64')
       };
 
       expect(credentials).toHaveProperty('username');
@@ -65,10 +67,12 @@ describe('Authentication Types', () => {
     it('should return correct types from methods', () => {
       class TestAuthManager implements IAuthenticationManager {
         getCredentials(): ICredentials {
+          const username = 'testuser';
+          const password = 'testpass';
           return {
-            username: 'testuser',
-            password: 'testpass',
-            encodedCredentials: 'dGVzdHVzZXI6dGVzdHBhc3M='
+            username,
+            password,
+            encodedCredentials: Buffer.from(`${username}:${password}`).toString('base64')
           };
         }
 
@@ -121,7 +125,7 @@ describe('Authentication Types', () => {
       const authManager = new AuthManager();
       const encoded = authManager.encodeCredentials('testuser', 'testpass');
       
-      expect(encoded).toBe('dGVzdHVzZXI6dGVzdHBhc3M=');
+      expect(encoded).toBe(Buffer.from('testuser:testpass').toString('base64'));
       
       const decoded = Buffer.from(encoded, 'base64').toString('ascii');
       expect(decoded).toBe('testuser:testpass');

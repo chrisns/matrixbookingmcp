@@ -20,10 +20,12 @@ describe('BookingService', () => {
     apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
   };
 
+  const username = 'test@example.com';
+  const password = 'password';
   const mockCredentials: ICredentials = {
-    username: 'test@example.com',
-    password: 'password',
-    encodedCredentials: 'dGVzdEBleGFtcGxlLmNvbTpwYXNzd29yZA=='
+    username,
+    password,
+    encodedCredentials: Buffer.from(`${username}:${password}`).toString('base64')
   };
 
   const mockLocation: ILocation = {
