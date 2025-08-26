@@ -1,0 +1,4 @@
+.env
+.claude/agents/kfc
+bookexample.js
+.claude/settings/kfc-settings.json
