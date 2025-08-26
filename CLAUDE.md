@@ -9,6 +9,3 @@ The following steering documents provide guidance for AI assistants working on t
 - **[Product Overview](.claude/steering/product.md)** - Product purpose, core features, and business logic rules
 - **[Technical Guidelines](.claude/steering/tech.md)** - Tech stack, dependencies, authentication patterns, and testing requirements  
 - **[Project Structure](.claude/steering/structure.md)** - Directory organization, file naming conventions, and architecture patterns
-
-## Development Notes
-See `notes.md` for detailed project requirements and specifications.

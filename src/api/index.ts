@@ -1,0 +1,1 @@
+export { MatrixAPIClient } from './matrix-api-client.js';
