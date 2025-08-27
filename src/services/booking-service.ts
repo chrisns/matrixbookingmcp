@@ -34,7 +34,7 @@ export class BookingService implements IBookingService {
     return await this.apiClient.createBooking(request, credentials);
   }
 
-  formatBookingRequest(request: Partial<IBookingRequest>): IBookingRequest {
+  async formatBookingRequest(request: Partial<IBookingRequest>): Promise<IBookingRequest> {
     const config = this.configManager.getConfig();
     const today = getCurrentDateString();
     
@@ -48,12 +48,29 @@ export class BookingService implements IBookingService {
     const defaultOwnerIsAttendee = request.ownerIsAttendee ?? true;
     const defaultSource = request.source || 'matrix-booking-mcp';
 
-    // Extract owner from config if not provided
-    const defaultOwner: IOwner = request.owner || {
-      id: 0, // Will be set by API based on credentials
-      email: config.matrixUsername,
-      name: config.matrixUsername
-    };
+    // Get user profile to extract real personId for owner
+    let defaultOwner: IOwner;
+    if (request.owner) {
+      defaultOwner = request.owner;
+    } else {
+      try {
+        const credentials = this.authManager.getCredentials();
+        const userProfile = await this.authManager.getCurrentUser(credentials);
+        defaultOwner = {
+          id: userProfile.personId, // Use real personId instead of 0
+          email: userProfile.email,
+          name: userProfile.name
+        };
+      } catch (error) {
+        // Fallback to config values if user profile fetch fails
+        console.error('Failed to get user profile, using config fallback:', error);
+        defaultOwner = {
+          id: 0, // This will likely cause "Person not found" error
+          email: config.matrixUsername,
+          name: config.matrixUsername
+        };
+      }
+    }
 
     return {
       timeFrom: defaultTimeFrom,

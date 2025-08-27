@@ -42,7 +42,8 @@ describe('Graceful Degradation and Error Handling Performance', () => {
     mockAuthManager = {
       getCredentials: vi.fn().mockReturnValue(mockCredentials),
       encodeCredentials: vi.fn().mockReturnValue(encodedCredentials),
-      createAuthHeader: vi.fn().mockReturnValue({
+      createAuthHeader: vi.fn(),
+      getCurrentUser: vi.fn().mockReturnValue({
         'Authorization': `Basic ${encodedCredentials}`,
         'Content-Type': 'application/json;charset=UTF-8',
         'x-matrix-source': 'WEB',
@@ -410,7 +411,7 @@ describe('Graceful Degradation and Error Handling Performance', () => {
         expect(errorResponse.requestId).toBeDefined();
       });
 
-      console.log(`Processed ${numRequests} error responses in ${duration}ms (${(duration/numRequests).toFixed(2)}ms per error)`);
+      console.error(`Processed ${numRequests} error responses in ${duration}ms (${(duration / numRequests).toFixed(2)}ms per error)`);
     });
 
     it('should maintain consistent error response structure under load', async () => {

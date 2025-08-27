@@ -1,4 +1,4 @@
-import { IAuthenticationManager, ICredentials } from '../types/authentication.types.js';
+import { IAuthenticationManager, ICredentials, IUserProfile } from '../types/authentication.types.js';
 import { IConfigurationManager } from '../config/config-manager.js';
 
 export class AuthenticationManager implements IAuthenticationManager {
@@ -46,5 +46,29 @@ export class AuthenticationManager implements IAuthenticationManager {
       'x-matrix-source': 'WEB',
       'x-time-zone': 'Europe/London'
     };
+  }
+
+  async getCurrentUser(credentials: ICredentials): Promise<IUserProfile> {
+    const config = this.configManager.getConfig();
+    const headers = this.createAuthHeader(credentials);
+    
+    const response = await globalThis.fetch(`${config.apiBaseUrl}/user/current`, {
+      method: 'GET',
+      headers,
+      signal: AbortSignal.timeout(config.apiTimeout)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get current user: ${response.status} ${response.statusText}`);
+    }
+
+    const userData = await response.json() as IUserProfile;
+    
+    // Validate required fields
+    if (!userData.personId || !userData.email || !userData.name) {
+      throw new Error('Invalid user profile response: missing required fields');
+    }
+
+    return userData;
   }
 }

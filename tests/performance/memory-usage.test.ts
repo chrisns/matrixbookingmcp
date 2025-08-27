@@ -40,7 +40,8 @@ describe('Memory Usage Performance Testing', () => {
     mockAuthManager = {
       getCredentials: vi.fn().mockReturnValue(mockCredentials),
       encodeCredentials: vi.fn().mockReturnValue(encodedCredentials),
-      createAuthHeader: vi.fn().mockReturnValue({
+      createAuthHeader: vi.fn(),
+      getCurrentUser: vi.fn().mockReturnValue({
         'Authorization': `Basic ${encodedCredentials}`,
         'Content-Type': 'application/json;charset=UTF-8',
         'x-matrix-source': 'WEB',
@@ -110,10 +111,10 @@ describe('Memory Usage Performance Testing', () => {
       // Verify requests were made
       expect(mockFetch).toHaveBeenCalledTimes(numRequests);
 
-      console.log(`Memory usage test results:`);
-      console.log(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Final heap: ${(finalMemory!.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Memory usage test results:`);
+      console.error(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Final heap: ${(finalMemory!.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
     });
 
     it('should not leak memory during error scenarios', async () => {
@@ -154,10 +155,10 @@ describe('Memory Usage Performance Testing', () => {
       
       expect(mockFetch).toHaveBeenCalledTimes(numRequests);
 
-      console.log(`Error scenario memory test results:`);
-      console.log(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Final heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Error scenario memory test results:`);
+      console.error(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Final heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
     });
 
     it('should handle concurrent requests without excessive memory consumption', async () => {
@@ -214,10 +215,10 @@ describe('Memory Usage Performance Testing', () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(numConcurrentRequests);
 
-      console.log(`Concurrent requests memory test results:`);
-      console.log(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Final heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Concurrent requests memory test results:`);
+      console.error(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Final heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
     });
 
     it('should maintain stable memory during mixed operation types', async () => {
@@ -309,10 +310,10 @@ describe('Memory Usage Performance Testing', () => {
       // Verify all operations were performed
       expect(mockFetch).toHaveBeenCalledTimes(numIterations * 3);
 
-      console.log(`Mixed operations memory test results:`);
-      console.log(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Final heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Mixed operations memory test results:`);
+      console.error(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Final heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
     });
   });
 
@@ -359,10 +360,10 @@ describe('Memory Usage Performance Testing', () => {
       
       expect(mockFetch).toHaveBeenCalledTimes(numRequests);
 
-      console.log(`Resource cleanup memory test results:`);
-      console.log(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Final heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Resource cleanup memory test results:`);
+      console.error(`Initial heap: ${(initialMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Final heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB`);
     });
   });
 
@@ -388,7 +389,7 @@ describe('Memory Usage Performance Testing', () => {
       expect(report.heapUsedMB).toBeGreaterThan(0);
       expect(report.heapTotalMB).toBeGreaterThan(0);
       
-      console.log('Memory report:', report);
+      console.error('Memory report:', report);
     });
   });
 });

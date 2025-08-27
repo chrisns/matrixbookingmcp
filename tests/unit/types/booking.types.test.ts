@@ -335,7 +335,7 @@ describe('Booking Types', () => {
           };
         }
 
-        formatBookingRequest(request: Partial<IBookingRequest>): IBookingRequest {
+        async formatBookingRequest(request: Partial<IBookingRequest>): Promise<IBookingRequest> {
           return {
             timeFrom: request.timeFrom || new Date().toISOString(),
             timeTo: request.timeTo || new Date(Date.now() + 3600000).toISOString(),
@@ -392,13 +392,13 @@ describe('Booking Types', () => {
       expect(isValid).toBe(true);
     });
 
-    it('should handle booking request formatting with defaults', () => {
+    it('should handle booking request formatting with defaults', async () => {
       class TestBookingService implements IBookingService {
         async createBooking(_request: IBookingRequest): Promise<IBookingResponse> {
           throw new Error('Not implemented for test');
         }
 
-        formatBookingRequest(request: Partial<IBookingRequest>): IBookingRequest {
+        async formatBookingRequest(request: Partial<IBookingRequest>): Promise<IBookingRequest> {
           const now = new Date();
           const later = new Date(now.getTime() + 3600000);
 
@@ -428,7 +428,7 @@ describe('Booking Types', () => {
         locationId: 456
       };
 
-      const formatted = service.formatBookingRequest(partialRequest);
+      const formatted = await service.formatBookingRequest(partialRequest);
       
       expect(formatted.locationId).toBe(456);
       expect(formatted.attendees).toEqual([]);

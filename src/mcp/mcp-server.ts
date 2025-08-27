@@ -200,7 +200,7 @@ export class MatrixBookingMCPServer {
   }
 
   private async handleCheckAvailability(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
-    console.log('MCP Server: Handling check availability request:', args);
+    console.error('MCP Server: Handling check availability request:', args);
 
     // Build request object with only defined values to avoid type issues
     const request: Partial<{ dateFrom: string; dateTo: string; locationId: number; duration: number }> = {};
@@ -231,7 +231,7 @@ export class MatrixBookingMCPServer {
   }
 
   private async handleCreateBooking(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
-    console.log('MCP Server: Handling create booking request:', args);
+    console.error('MCP Server: Handling create booking request:', args);
 
     // Build partial request object with only defined values
     const partialRequest: Partial<{ 
@@ -270,7 +270,7 @@ export class MatrixBookingMCPServer {
       partialRequest.source = args['source'] as string;
     }
 
-    const formattedRequest = this.bookingService.formatBookingRequest(partialRequest);
+    const formattedRequest = await this.bookingService.formatBookingRequest(partialRequest);
     const response = await this.bookingService.createBooking(formattedRequest);
 
     return {
@@ -284,7 +284,7 @@ export class MatrixBookingMCPServer {
   }
 
   private async handleGetLocation(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
-    console.log('MCP Server: Handling get location request:', args);
+    console.error('MCP Server: Handling get location request:', args);
 
     let response;
     if (args['locationId']) {
@@ -304,12 +304,12 @@ export class MatrixBookingMCPServer {
   }
 
   async start(): Promise<void> {
-    console.log('Matrix Booking MCP Server: Starting MCP server...');
+    console.error('Matrix Booking MCP Server: Starting MCP server...');
     // The server will be connected via stdio transport by the runtime
   }
 
   async stop(): Promise<void> {
-    console.log('Matrix Booking MCP Server: Stopping MCP server...');
+    console.error('Matrix Booking MCP Server: Stopping MCP server...');
     await this.server.close();
   }
 

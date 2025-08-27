@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BookingService } from '../../../src/services/booking-service.js';
 import { IBookingRequest, IBookingResponse, IOwner, IAttendee } from '../../../src/types/booking.types.js';
 import { IMatrixAPIClient } from '../../../src/types/api.types.js';
-import { IAuthenticationManager, ICredentials } from '../../../src/types/authentication.types.js';
+import { IAuthenticationManager, ICredentials, IUserProfile } from '../../../src/types/authentication.types.js';
 import { IConfigurationManager, IServerConfig } from '../../../src/config/config-manager.js';
 import { ILocation } from '../../../src/types/location.types.js';
 
@@ -47,6 +47,17 @@ describe('BookingService', () => {
     name: 'Attendee User'
   };
 
+  const mockUserProfile: IUserProfile = {
+    id: 4112469005,
+    personId: 4112469006,
+    organisationId: 2147924904,
+    firstName: 'Test',
+    lastName: 'User',
+    name: 'Test User',
+    email: 'test@example.com',
+    roles: ['USER']
+  };
+
   beforeEach(() => {
     mockApiClient = {
       checkAvailability: vi.fn(),
@@ -58,7 +69,8 @@ describe('BookingService', () => {
     mockAuthManager = {
       getCredentials: vi.fn(),
       createAuthHeader: vi.fn(),
-      encodeCredentials: vi.fn()
+      encodeCredentials: vi.fn(),
+      getCurrentUser: vi.fn()
     };
 
     mockConfigManager = {
@@ -68,6 +80,7 @@ describe('BookingService', () => {
 
     vi.mocked(mockConfigManager.getConfig).mockReturnValue(mockConfig);
     vi.mocked(mockAuthManager.getCredentials).mockResolvedValue(mockCredentials);
+    vi.mocked(mockAuthManager.getCurrentUser).mockResolvedValue(mockUserProfile);
 
     bookingService = new BookingService(mockApiClient, mockAuthManager, mockConfigManager);
   });
@@ -152,24 +165,25 @@ describe('BookingService', () => {
   });
 
   describe('formatBookingRequest', () => {
-    it('should apply default values for empty request', () => {
+    it('should apply default values for empty request', async () => {
       const partialRequest: Partial<IBookingRequest> = {};
-      const result = bookingService.formatBookingRequest(partialRequest);
+      const result = await bookingService.formatBookingRequest(partialRequest);
 
       expect(result.locationId).toBe(123);
       expect(result.attendees).toEqual([]);
       expect(result.extraRequests).toEqual([]);
       expect(result.ownerIsAttendee).toBe(true);
       expect(result.source).toBe('matrix-booking-mcp');
+      expect(result.owner.id).toBe(4112469006); // Real personId from user profile
       expect(result.owner.email).toBe('test@example.com');
-      expect(result.owner.name).toBe('test@example.com');
+      expect(result.owner.name).toBe('Test User');
 
       // Validate date formats - Matrix API expects local timezone (no Z suffix)
       expect(result.timeFrom).toMatch(/^\d{4}-\d{2}-\d{2}T09:00:00\.000$/);
       expect(result.timeTo).toMatch(/^\d{4}-\d{2}-\d{2}T10:00:00\.000$/);
     });
 
-    it('should preserve provided values and only apply defaults for missing fields', () => {
+    it('should preserve provided values and only apply defaults for missing fields', async () => {
       const partialRequest: Partial<IBookingRequest> = {
         timeFrom: '2024-01-15T14:00:00.000Z',
         timeTo: '2024-01-15T15:00:00.000Z',
@@ -180,7 +194,7 @@ describe('BookingService', () => {
         source: 'custom-source'
       };
 
-      const result = bookingService.formatBookingRequest(partialRequest);
+      const result = await bookingService.formatBookingRequest(partialRequest);
 
       expect(result.timeFrom).toBe('2024-01-15T14:00:00.000Z');
       expect(result.timeTo).toBe('2024-01-15T15:00:00.000Z');
@@ -192,14 +206,14 @@ describe('BookingService', () => {
       expect(result.extraRequests).toEqual([]); // Default applied
     });
 
-    it('should handle partial owner information', () => {
+    it('should handle partial owner information', async () => {
       const partialRequest: Partial<IBookingRequest> = {};
 
-      const result = bookingService.formatBookingRequest(partialRequest);
+      const result = await bookingService.formatBookingRequest(partialRequest);
 
-      expect(result.owner.id).toBe(0);
+      expect(result.owner.id).toBe(4112469006); // Real personId from user profile
       expect(result.owner.email).toBe('test@example.com');
-      expect(result.owner.name).toBe('test@example.com');
+      expect(result.owner.name).toBe('Test User');
     });
   });
 

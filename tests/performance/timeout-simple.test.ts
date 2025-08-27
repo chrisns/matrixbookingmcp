@@ -40,7 +40,8 @@ describe('Simple Timeout Testing', () => {
     mockAuthManager = {
       getCredentials: vi.fn().mockReturnValue(mockCredentials),
       encodeCredentials: vi.fn().mockReturnValue(encodedCredentials),
-      createAuthHeader: vi.fn().mockReturnValue({
+      createAuthHeader: vi.fn(),
+      getCurrentUser: vi.fn().mockReturnValue({
         'Authorization': `Basic ${encodedCredentials}`,
         'Content-Type': 'application/json;charset=UTF-8',
         'x-matrix-source': 'WEB',

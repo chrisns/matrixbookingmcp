@@ -21,16 +21,16 @@ export * from './mcp/index.js';
 
 async function startServer(): Promise<void> {
   try {
-    console.log("Matrix Booking MCP Server - Starting up...");
+    console.error("Matrix Booking MCP Server - Starting up...");
     
     // Validate configuration first
     const configManager = new ConfigurationManager();
     const config = configManager.getConfig();
     
-    console.log("Configuration loaded successfully");
-    console.log(`API Base URL: ${config.apiBaseUrl}`);
-    console.log(`API Timeout: ${config.apiTimeout}ms`);
-    console.log(`Preferred Location: ${config.matrixPreferredLocation}`);
+    console.error("Configuration loaded successfully");
+    console.error(`API Base URL: ${config.apiBaseUrl}`);
+    console.error(`API Timeout: ${config.apiTimeout}ms`);
+    console.error(`Preferred Location: ${config.matrixPreferredLocation}`);
     
     // Initialize MCP server
     const mcpServer = new MatrixBookingMCPServer();
@@ -38,12 +38,12 @@ async function startServer(): Promise<void> {
     
     // Set up stdio transport
     const transport = new StdioServerTransport();
-    console.log("MCP Server transport initialized");
+    console.error("MCP Server transport initialized");
     
     // Connect the server to the transport
     await mcpServer.getServer().connect(transport);
     
-    console.log("Matrix Booking MCP Server - Ready and connected!");
+    console.error("Matrix Booking MCP Server - Ready and connected!");
     
   } catch (error) {
     console.error("Failed to start Matrix Booking MCP Server:");

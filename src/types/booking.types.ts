@@ -67,6 +67,6 @@ export interface IBookingResponse {
 
 export interface IBookingService {
   createBooking(_request: IBookingRequest): Promise<IBookingResponse>;
-  formatBookingRequest(_request: Partial<IBookingRequest>): IBookingRequest;
+  formatBookingRequest(_request: Partial<IBookingRequest>): Promise<IBookingRequest>;
   validateBookingRequest(_request: IBookingRequest): boolean;
 }

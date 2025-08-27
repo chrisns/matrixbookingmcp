@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ICredentials, IAuthenticationManager } from '../../../src/types/authentication.types.js';
+import type { ICredentials, IAuthenticationManager, IUserProfile } from '../../../src/types/authentication.types.js';
 
 describe('Authentication Types', () => {
   describe('ICredentials interface', () => {
@@ -55,6 +55,19 @@ describe('Authentication Types', () => {
             'Authorization': `Basic ${credentials.encodedCredentials}`
           };
         }
+
+        async getCurrentUser(credentials: ICredentials): Promise<IUserProfile> {
+          return {
+            id: 1,
+            personId: 1001,
+            organisationId: 2001,
+            firstName: 'Test',
+            lastName: 'User',
+            name: 'Test User',
+            email: credentials.username,
+            roles: ['USER']
+          };
+        }
       }
 
       const authManager = new MockAuthManager();
@@ -84,6 +97,19 @@ describe('Authentication Types', () => {
           return {
             'Authorization': `Basic ${credentials.encodedCredentials}`,
             'Content-Type': 'application/json'
+          };
+        }
+
+        async getCurrentUser(credentials: ICredentials): Promise<IUserProfile> {
+          return {
+            id: 2,
+            personId: 2002,
+            organisationId: 2002,
+            firstName: 'Test',
+            lastName: 'Auth',
+            name: 'Test Auth',
+            email: credentials.username,
+            roles: ['USER']
           };
         }
       }
@@ -118,6 +144,19 @@ describe('Authentication Types', () => {
         createAuthHeader(credentials: ICredentials): Record<string, string> {
           return {
             'Authorization': `Basic ${credentials.encodedCredentials}`
+          };
+        }
+
+        async getCurrentUser(credentials: ICredentials): Promise<IUserProfile> {
+          return {
+            id: 3,
+            personId: 3003,
+            organisationId: 2003,
+            firstName: 'Auth',
+            lastName: 'Manager',
+            name: 'Auth Manager',
+            email: credentials.username,
+            roles: ['USER']
           };
         }
       }

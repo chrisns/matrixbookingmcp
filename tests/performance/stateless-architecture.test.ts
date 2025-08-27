@@ -138,7 +138,7 @@ describe('Stateless Architecture Performance Testing', () => {
       const maxSequentialTime = (numClients * requestsPerClient * 10) * 0.8; // 80% of sequential time
       expect(duration).toBeLessThan(maxSequentialTime);
 
-      console.log(`${numClients * requestsPerClient} concurrent requests across ${numClients} clients completed in ${duration}ms`);
+      console.error(`${numClients * requestsPerClient} concurrent requests across ${numClients} clients completed in ${duration}ms`);
     });
 
     it('should maintain independent state across client instances with different configurations', async () => {
@@ -486,9 +486,9 @@ describe('Stateless Architecture Performance Testing', () => {
       const performanceRatio = Math.max(firstBatchAverage, secondBatchAverage) / Math.min(firstBatchAverage, secondBatchAverage);
       expect(performanceRatio).toBeLessThan(5.0); // Generous threshold for various CI/test environments
 
-      console.log(`First batch average: ${firstBatchAverage.toFixed(2)}ms per request`);
-      console.log(`Second batch average: ${secondBatchAverage.toFixed(2)}ms per request`);
-      console.log(`Performance ratio: ${performanceRatio.toFixed(2)}`);
+      console.error(`First batch average: ${firstBatchAverage.toFixed(2)}ms per request`);
+      console.error(`Second batch average: ${secondBatchAverage.toFixed(2)}ms per request`);
+      console.error(`Performance ratio: ${performanceRatio.toFixed(2)}`);
     });
 
     it('should scale linearly with concurrent requests', async () => {
@@ -537,7 +537,7 @@ describe('Stateless Architecture Performance Testing', () => {
 
       // Log results for analysis
       results.forEach(result => {
-        console.log(`Concurrency ${result.concurrency}: ${result.duration}ms total, ${result.avgPerRequest.toFixed(2)}ms average per request`);
+        console.error(`Concurrency ${result.concurrency}: ${result.duration}ms total, ${result.avgPerRequest.toFixed(2)}ms average per request`);
       });
 
       // With proper stateless design, higher concurrency should not significantly degrade per-request performance
@@ -547,7 +547,7 @@ describe('Stateless Architecture Performance Testing', () => {
       const scalingRatio = (lastAvg && firstAvg) ? lastAvg / firstAvg : 0;
       
       expect(scalingRatio).toBeLessThan(2.0);
-      console.log(`Scaling ratio (highest/lowest concurrency): ${scalingRatio.toFixed(2)}`);
+      console.error(`Scaling ratio (highest/lowest concurrency): ${scalingRatio.toFixed(2)}`);
     });
   });
 });
