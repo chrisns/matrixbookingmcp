@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ILocation, ILocationService } from '../../../src/types/location.types.js';
+import type { ILocation, ILocationService, ILocationQueryRequest, ILocationHierarchyResponse } from '../../../src/types/location.types.js';
 
 describe('Location Types', () => {
   describe('ILocation interface', () => {
@@ -148,6 +148,18 @@ describe('Location Types', () => {
         validateLocationId(locationId: number): boolean {
           return Number.isInteger(locationId) && locationId > 0 && locationId <= 1000;
         }
+
+        async getLocationHierarchy(_request?: ILocationQueryRequest): Promise<ILocationHierarchyResponse> {
+          return {
+            locations: [],
+            total: 0,
+            hierarchy: {}
+          };
+        }
+
+        async getLocationsByKind(_kind: string): Promise<ILocation[]> {
+          return [];
+        }
       }
 
       const service = new MockLocationService();
@@ -207,6 +219,18 @@ describe('Location Types', () => {
           }
           
           return this.locations.has(locationId);
+        }
+
+        async getLocationHierarchy(_request?: ILocationQueryRequest): Promise<ILocationHierarchyResponse> {
+          return {
+            locations: Array.from(this.locations.values()),
+            total: this.locations.size,
+            hierarchy: {}
+          };
+        }
+
+        async getLocationsByKind(_kind: string): Promise<ILocation[]> {
+          return Array.from(this.locations.values());
         }
       }
 
@@ -322,6 +346,18 @@ describe('Location Types', () => {
           
           return true;
         }
+
+        async getLocationHierarchy(_request?: ILocationQueryRequest): Promise<ILocationHierarchyResponse> {
+          return {
+            locations: [],
+            total: 0,
+            hierarchy: {}
+          };
+        }
+
+        async getLocationsByKind(_kind: string): Promise<ILocation[]> {
+          return [];
+        }
       }
 
       const service = new EdgeCaseLocationService();
@@ -391,6 +427,20 @@ describe('Location Types', () => {
         validateLocationId(locationId: number): boolean {
           // Synchronous validation (no async needed)
           return Number.isInteger(locationId) && locationId > 0;
+        }
+
+        async getLocationHierarchy(_request?: ILocationQueryRequest): Promise<ILocationHierarchyResponse> {
+          await this.simulateDelay(15);
+          return {
+            locations: [],
+            total: 0,
+            hierarchy: {}
+          };
+        }
+
+        async getLocationsByKind(_kind: string): Promise<ILocation[]> {
+          await this.simulateDelay(12);
+          return [];
         }
       }
 

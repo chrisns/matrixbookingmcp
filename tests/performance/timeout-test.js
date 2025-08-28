@@ -92,9 +92,13 @@ export default function () {
   
   // Log timeout occurrences for analysis
   if (response.status === 0) {
-    console.log(`Request timed out as expected after ~5000ms (actual: ${response.timings.duration}ms, expected delay: ${expectedDelay}s)`);
+    console.error(
+      `Request timed out as expected after ~5000ms (actual: ${response.timings.duration}ms, expected delay: ${expectedDelay}s)`
+    );
   } else if (response.timings.duration >= 5000) {
-    console.log(`Request took longer than timeout but completed: ${response.timings.duration}ms`);
+    console.error(
+      `Request took longer than timeout but completed: ${response.timings.duration}ms`
+    );
   }
   
   sleep(0.5); // Brief pause between requests
@@ -102,7 +106,7 @@ export default function () {
 
 // Test specific timeout scenarios
 export function testExactTimeoutBoundary() {
-  console.log('Testing exact 5-second timeout boundary...');
+  console.error("Testing exact 5-second timeout boundary...");
   
   // Test request that should complete just before timeout
   const response1 = http.get(`${BASE_URL}/delay/4.9`, {
@@ -137,7 +141,7 @@ export function testExactTimeoutBoundary() {
 }
 
 export function testConcurrentTimeouts() {
-  console.log('Testing concurrent timeout behavior...');
+  console.error("Testing concurrent timeout behavior...");
   
   // Start multiple concurrent requests that will timeout
   const requests = [
@@ -175,7 +179,7 @@ export function testConcurrentTimeouts() {
 }
 
 export function testMixedTimeoutScenario() {
-  console.log('Testing mixed fast/slow request scenario...');
+  console.error("Testing mixed fast/slow request scenario...");
   
   // Fast request that should complete
   const fastResponse = http.get(`${BASE_URL}/delay/1`, {
@@ -208,13 +212,17 @@ export function testMixedTimeoutScenario() {
 }
 
 export function setup() {
-  console.log('Starting Timeout Testing for Matrix Booking MCP Server');
-  console.log(`Test endpoint: ${BASE_URL}`);
-  console.log('This test will verify that:');
-  console.log('1. Requests complete within 5-second timeout limit when possible');
-  console.log('2. Requests properly timeout after 5 seconds for slow responses');
-  console.log('3. Concurrent requests timeout independently');
-  console.log('4. Mixed fast/slow scenarios work correctly');
+  console.error("Starting Timeout Testing for Matrix Booking MCP Server");
+  console.error(`Test endpoint: ${BASE_URL}`);
+  console.error("This test will verify that:");
+  console.error(
+    "1. Requests complete within 5-second timeout limit when possible"
+  );
+  console.error(
+    "2. Requests properly timeout after 5 seconds for slow responses"
+  );
+  console.error("3. Concurrent requests timeout independently");
+  console.error("4. Mixed fast/slow scenarios work correctly");
   
   // Verify httpbin is accessible
   const connectTest = http.get(`${BASE_URL}/status/200`, { timeout: '10s' });
@@ -232,10 +240,14 @@ export function setup() {
 }
 
 export function teardown(data) {
-  console.log(`Timeout testing completed. Started at: ${data.startTime}`);
-  console.log('Check the K6 metrics for:');
-  console.log('- timeout_rate: Should be high (we expect timeouts)');
-  console.log('- actual_timeouts: Count of requests that actually timed out');
-  console.log('- timeout_response_times: Distribution of timeout response times');
-  console.log('- http_req_duration: Should show clear distinction between fast/timeout responses');
+  console.error(`Timeout testing completed. Started at: ${data.startTime}`);
+  console.error("Check the K6 metrics for:");
+  console.error("- timeout_rate: Should be high (we expect timeouts)");
+  console.error("- actual_timeouts: Count of requests that actually timed out");
+  console.error(
+    "- timeout_response_times: Distribution of timeout response times"
+  );
+  console.error(
+    "- http_req_duration: Should show clear distinction between fast/timeout responses"
+  );
 }

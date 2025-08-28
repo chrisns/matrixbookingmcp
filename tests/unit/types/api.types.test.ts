@@ -7,7 +7,9 @@ import type {
 import type { ICredentials } from '../../../src/types/authentication.types.js';
 import type { IAvailabilityRequest, IAvailabilityResponse } from '../../../src/types/availability.types.js';
 import type { IBookingRequest, IBookingResponse } from '../../../src/types/booking.types.js';
-import type { ILocation } from '../../../src/types/location.types.js';
+import type { ILocation, ILocationQueryRequest, ILocationHierarchyResponse } from '../../../src/types/location.types.js';
+import type { ICurrentUserResponse, IUserBookingsRequest, IUserBookingsResponse } from '../../../src/types/user.types.js';
+import type { IOrganizationResponse } from '../../../src/types/organization.types.js';
 
 describe('API Types', () => {
   describe('IAPIRequest interface', () => {
@@ -303,6 +305,59 @@ describe('API Types', () => {
             data: { mock: 'response' } as T
           };
         }
+
+        async getCurrentUser(_credentials: ICredentials): Promise<ICurrentUserResponse> {
+          return {
+            id: 1,
+            personId: 1,
+            organisationId: 1,
+            firstName: 'Test',
+            lastName: 'User',
+            name: 'Test User',
+            email: 'test@example.com',
+            roles: ['user']
+          };
+        }
+
+        async getUserBookings(_request: IUserBookingsRequest, _credentials: ICredentials): Promise<IUserBookingsResponse> {
+          return {
+            bookings: [],
+            total: 0
+          };
+        }
+
+        async getAllBookings(_credentials: ICredentials): Promise<IUserBookingsResponse> {
+          return {
+            bookings: [],
+            total: 0
+          };
+        }
+
+        async getAvailability(_credentials: ICredentials): Promise<IAvailabilityResponse> {
+          return {
+            available: true,
+            slots: [],
+            location: { id: 1, name: 'Test Location', kind: 'ROOM' }
+          };
+        }
+
+        async getLocationHierarchy(_request: ILocationQueryRequest, _credentials: ICredentials): Promise<ILocationHierarchyResponse> {
+          return {
+            locations: [],
+            total: 0,
+            hierarchy: {}
+          };
+        }
+
+        async getOrganization(organizationId: number, _credentials: ICredentials): Promise<IOrganizationResponse> {
+          return {
+            id: organizationId,
+            name: 'Test Organization',
+            categories: [],
+            locationKinds: [],
+            rootLocation: { id: 1, name: 'Root Location' }
+          };
+        }
       }
 
       const client = new MockMatrixAPIClient();
@@ -433,6 +488,59 @@ describe('API Types', () => {
             data: { success: true, method: _request.method } as T
           };
         }
+
+        async getCurrentUser(_credentials: ICredentials): Promise<ICurrentUserResponse> {
+          return {
+            id: 1,
+            personId: 1,
+            organisationId: 1,
+            firstName: 'Test',
+            lastName: 'User',
+            name: 'Test User',
+            email: 'test@example.com',
+            roles: ['user']
+          };
+        }
+
+        async getUserBookings(_request: IUserBookingsRequest, _credentials: ICredentials): Promise<IUserBookingsResponse> {
+          return {
+            bookings: [],
+            total: 0
+          };
+        }
+
+        async getAllBookings(_credentials: ICredentials): Promise<IUserBookingsResponse> {
+          return {
+            bookings: [],
+            total: 0
+          };
+        }
+
+        async getAvailability(_credentials: ICredentials): Promise<IAvailabilityResponse> {
+          return {
+            available: true,
+            slots: [],
+            location: { id: 1, name: 'Test Location', kind: 'ROOM' }
+          };
+        }
+
+        async getLocationHierarchy(_request: ILocationQueryRequest, _credentials: ICredentials): Promise<ILocationHierarchyResponse> {
+          return {
+            locations: [],
+            total: 0,
+            hierarchy: {}
+          };
+        }
+
+        async getOrganization(organizationId: number, _credentials: ICredentials): Promise<IOrganizationResponse> {
+          return {
+            id: organizationId,
+            name: 'Test Organization',
+            categories: [],
+            locationKinds: [],
+            rootLocation: { id: 1, name: 'Root Location' }
+          };
+        }
       }
 
       const client = new TestMatrixAPIClient();
@@ -528,6 +636,59 @@ describe('API Types', () => {
             statusText: 'OK',
             headers: {},
             data: { success: true } as T
+          };
+        }
+
+        async getCurrentUser(_credentials: ICredentials): Promise<ICurrentUserResponse> {
+          return {
+            id: 1,
+            personId: 1,
+            organisationId: 1,
+            firstName: 'Test',
+            lastName: 'User',
+            name: 'Test User',
+            email: 'test@example.com',
+            roles: ['user']
+          };
+        }
+
+        async getUserBookings(_request: IUserBookingsRequest, _credentials: ICredentials): Promise<IUserBookingsResponse> {
+          return {
+            bookings: [],
+            total: 0
+          };
+        }
+
+        async getAllBookings(_credentials: ICredentials): Promise<IUserBookingsResponse> {
+          return {
+            bookings: [],
+            total: 0
+          };
+        }
+
+        async getAvailability(_credentials: ICredentials): Promise<IAvailabilityResponse> {
+          return {
+            available: true,
+            slots: [],
+            location: { id: 1, name: 'Test Location', kind: 'ROOM' }
+          };
+        }
+
+        async getLocationHierarchy(_request: ILocationQueryRequest, _credentials: ICredentials): Promise<ILocationHierarchyResponse> {
+          return {
+            locations: [],
+            total: 0,
+            hierarchy: {}
+          };
+        }
+
+        async getOrganization(organizationId: number, _credentials: ICredentials): Promise<IOrganizationResponse> {
+          return {
+            id: organizationId,
+            name: 'Test Organization',
+            categories: [],
+            locationKinds: [],
+            rootLocation: { id: 1, name: 'Root Location' }
           };
         }
       }

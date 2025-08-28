@@ -24,7 +24,9 @@ export type ErrorType =
   | 'API_ERROR'
   | 'SYSTEM_ERROR'
   | 'AVAILABILITY_ERROR'
-  | 'LOCATION_ERROR';
+  | 'LOCATION_ERROR'
+  | 'ORGANIZATION_ERROR'
+  | 'USER_SERVICE_ERROR';
 
 export interface IErrorHandler {
   handleError(_error: unknown, _type: ErrorType): IErrorResponse;

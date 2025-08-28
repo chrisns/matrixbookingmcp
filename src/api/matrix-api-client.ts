@@ -2,7 +2,9 @@ import { IMatrixAPIClient, IAPIRequest, IAPIResponse } from '../types/api.types.
 import { ICredentials } from '../types/authentication.types.js';
 import { IAvailabilityRequest, IAvailabilityResponse } from '../types/availability.types.js';
 import { IBookingRequest, IBookingResponse } from '../types/booking.types.js';
-import { ILocation } from '../types/location.types.js';
+import { ILocation, ILocationHierarchyResponse, ILocationQueryRequest } from '../types/location.types.js';
+import { ICurrentUserResponse, IUserBookingsRequest, IUserBookingsResponse } from '../types/user.types.js';
+import { IOrganizationResponse } from '../types/organization.types.js';
 import { IAuthenticationManager } from '../types/authentication.types.js';
 import { IConfigurationManager } from '../config/config-manager.js';
 import { IErrorHandler } from '../types/error.types.js';
@@ -60,6 +62,115 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     };
 
     const response = await this.makeRequest<ILocation>(apiRequest);
+    return response.data;
+  }
+
+  async getCurrentUser(credentials: ICredentials): Promise<ICurrentUserResponse> {
+    const config = this.configManager.getConfig();
+    const headers = this.authManager.createAuthHeader(credentials);
+    
+    const apiRequest: IAPIRequest = {
+      method: 'GET',
+      url: `${config.apiBaseUrl}/user/current`,
+      headers
+    };
+
+    const response = await this.makeRequest<ICurrentUserResponse>(apiRequest);
+    return response.data;
+  }
+
+  async getUserBookings(request: IUserBookingsRequest, credentials: ICredentials): Promise<IUserBookingsResponse> {
+    const config = this.configManager.getConfig();
+    const headers = this.authManager.createAuthHeader(credentials);
+    
+    const queryParams = new URLSearchParams();
+    if (request.startDate) queryParams.append('startDate', request.startDate);
+    if (request.endDate) queryParams.append('endDate', request.endDate);
+    if (request.status) queryParams.append('status', request.status);
+    if (request.page) queryParams.append('page', request.page.toString());
+    if (request.pageSize) queryParams.append('pageSize', request.pageSize.toString());
+    
+    const queryString = queryParams.toString();
+    const url = queryString ? 
+      `${config.apiBaseUrl}/user/current/bookings?${queryString}` : 
+      `${config.apiBaseUrl}/user/current/bookings`;
+    
+    const apiRequest: IAPIRequest = {
+      method: 'GET',
+      url,
+      headers
+    };
+
+    const response = await this.makeRequest<IUserBookingsResponse>(apiRequest);
+    return response.data;
+  }
+
+  async getAllBookings(credentials: ICredentials): Promise<IUserBookingsResponse> {
+    const config = this.configManager.getConfig();
+    const headers = this.authManager.createAuthHeader(credentials);
+    
+    const apiRequest: IAPIRequest = {
+      method: 'GET',
+      url: `${config.apiBaseUrl}/booking`,
+      headers
+    };
+
+    const response = await this.makeRequest<IUserBookingsResponse>(apiRequest);
+    return response.data;
+  }
+
+  async getAvailability(credentials: ICredentials): Promise<IAvailabilityResponse> {
+    const config = this.configManager.getConfig();
+    const headers = this.authManager.createAuthHeader(credentials);
+    
+    const apiRequest: IAPIRequest = {
+      method: 'GET',
+      url: `${config.apiBaseUrl}/availability`,
+      headers
+    };
+
+    const response = await this.makeRequest<IAvailabilityResponse>(apiRequest);
+    return response.data;
+  }
+
+  async getLocationHierarchy(request: ILocationQueryRequest, credentials: ICredentials): Promise<ILocationHierarchyResponse> {
+    const config = this.configManager.getConfig();
+    const headers = this.authManager.createAuthHeader(credentials);
+    
+    const queryParams = new URLSearchParams();
+    if (request.parentId) queryParams.append('parentId', request.parentId.toString());
+    if (request.kind) queryParams.append('kind', request.kind);
+    if (request.includeAncestors) queryParams.append('includeAncestors', request.includeAncestors.toString());
+    if (request.includeFacilities) queryParams.append('includeFacilities', request.includeFacilities.toString());
+    if (request.includeChildren !== undefined) queryParams.append('includeChildren', request.includeChildren.toString());
+    if (request.isBookable !== undefined) queryParams.append('isBookable', request.isBookable.toString());
+    
+    const queryString = queryParams.toString();
+    const url = queryString ? 
+      `${config.apiBaseUrl}/location?${queryString}` : 
+      `${config.apiBaseUrl}/location`;
+    
+    const apiRequest: IAPIRequest = {
+      method: 'GET',
+      url,
+      headers
+    };
+
+    const response = await this.makeRequest<ILocationHierarchyResponse>(apiRequest);
+    return response.data;
+  }
+
+  async getOrganization(organizationId: number, credentials: ICredentials): Promise<IOrganizationResponse> {
+    const config = this.configManager.getConfig();
+    const headers = this.authManager.createAuthHeader(credentials);
+    
+    const apiRequest: IAPIRequest = {
+      method: 'GET',
+      url: `${config.apiBaseUrl}/org/${organizationId}`,
+      headers
+    };
+
+    const response = await this.makeRequest<IOrganizationResponse>(apiRequest);
     return response.data;
   }
 

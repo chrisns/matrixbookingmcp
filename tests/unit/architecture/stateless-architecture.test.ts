@@ -102,17 +102,18 @@ describe('Stateless Architecture Validation', () => {
     });
 
     it('should not store any session data in service instances', () => {
+      const locationService = new LocationService(apiClient, configManager, authManager);
       const services = [
         new AvailabilityService(apiClient, configManager, authManager),
-        new BookingService(apiClient, authManager, configManager),
-        new LocationService(apiClient, configManager, authManager)
+        new BookingService(apiClient, authManager, configManager, locationService),
+        locationService
       ];
 
       services.forEach((service, _index) => {
         const serviceKeys = Object.keys(service);
         
         // Should only have dependency injection properties, no state properties
-        const expectedProps = ['apiClient', 'configManager', 'authManager', 'errorHandler', 'validator', 'sanitizer'];
+        const expectedProps = ['apiClient', 'configManager', 'authManager', 'errorHandler', 'validator', 'sanitizer', 'locationService'];
         serviceKeys.forEach(key => {
           expect(expectedProps.some(prop => key.includes(prop))).toBe(true);
         });

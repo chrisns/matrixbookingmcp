@@ -169,9 +169,11 @@ export default function () {
 
 // Setup function - runs once before the test starts
 export function setup() {
-  console.log('Starting Matrix Booking MCP Server Load Test');
-  console.log(`Base URL: ${BASE_URL}`);
-  console.log(`Test will simulate Matrix API calls with 5-second timeout enforcement`);
+  console.error("Starting Matrix Booking MCP Server Load Test");
+  console.error(`Base URL: ${BASE_URL}`);
+  console.error(
+    `Test will simulate Matrix API calls with 5-second timeout enforcement`
+  );
   
   // Test connectivity
   const connectivityTest = http.get(BASE_URL, { timeout: '10s' });
@@ -184,8 +186,8 @@ export function setup() {
 
 // Teardown function - runs once after the test completes
 export function teardown(data) {
-  console.log(`Test completed. Started at: ${data.startTime}`);
-  console.log('Load test results available in K6 summary');
+  console.error(`Test completed. Started at: ${data.startTime}`);
+  console.error("Load test results available in K6 summary");
 }
 
 // Handle different test scenarios

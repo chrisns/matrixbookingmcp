@@ -4,7 +4,7 @@ import { IMatrixAPIClient } from '../../../src/types/api.types.js';
 import { IConfigurationManager, IServerConfig } from '../../../src/config/config-manager.js';
 import { IAuthenticationManager, ICredentials } from '../../../src/types/authentication.types.js';
 import { IErrorHandler } from '../../../src/types/error.types.js';
-import { ILocation } from '../../../src/types/location.types.js';
+import { ILocation, ILocationHierarchyResponse, ILocationQueryRequest } from '../../../src/types/location.types.js';
 
 describe('LocationService', () => {
   let service: LocationService;
@@ -71,6 +71,12 @@ describe('LocationService', () => {
       checkAvailability: vi.fn(),
       createBooking: vi.fn(),
       getLocation: vi.fn(),
+      getCurrentUser: vi.fn(),
+      getUserBookings: vi.fn(),
+      getAllBookings: vi.fn(),
+      getAvailability: vi.fn(),
+      getLocationHierarchy: vi.fn(),
+      getOrganization: vi.fn(),
       makeRequest: vi.fn()
     };
 
@@ -439,6 +445,375 @@ describe('LocationService', () => {
         expect(error).toBe(apiError); // Should be the same error object
         expect((error as typeof apiError).errorResponse?.httpStatus).toBe(401);
       }
+    });
+  });
+
+  describe('getLocationHierarchy', () => {
+    const mockHierarchy: ILocationHierarchyResponse = {
+      locations: [
+        {
+          id: 100,
+          name: 'Main Building',
+          kind: 'Building',
+          ancestors: []
+        },
+        {
+          id: 101,
+          name: 'Floor 1',
+          kind: 'Floor',
+          ancestors: [{ id: 100, name: 'Main Building', kind: 'Building' }]
+        },
+        {
+          id: 102,
+          name: 'Conference Room A',
+          kind: 'Room',
+          capacity: 12,
+          isBookable: true,
+          ancestors: [
+            { id: 100, name: 'Main Building', kind: 'Building' },
+            { id: 101, name: 'Floor 1', kind: 'Floor' }
+          ]
+        }
+      ],
+      total: 3,
+      hierarchy: {
+        100: [101],
+        101: [102],
+        102: []
+      }
+    };
+
+    it('should successfully get location hierarchy with no request parameters', async () => {
+      mockApiClient.getLocationHierarchy = vi.fn().mockResolvedValue(mockHierarchy);
+
+      const result = await service.getLocationHierarchy();
+
+      expect(mockAuthManager.getCredentials).toHaveBeenCalledTimes(1);
+      expect(mockApiClient.getLocationHierarchy).toHaveBeenCalledWith({}, mockCredentials);
+      expect(result).toEqual(mockHierarchy);
+      expect(result.locations).toHaveLength(3);
+    });
+
+    it('should successfully get location hierarchy with request parameters', async () => {
+      const request: ILocationQueryRequest = {
+        parentId: 100,
+        kind: 'Room',
+        includeAncestors: true,
+        includeFacilities: true,
+        includeChildren: false,
+        isBookable: true
+      };
+
+      const filteredHierarchy: ILocationHierarchyResponse = {
+        locations: [
+          {
+            id: 102,
+            name: 'Conference Room A',
+            kind: 'Room',
+            capacity: 12,
+            isBookable: true,
+            ancestors: [
+              { id: 100, name: 'Main Building', kind: 'Building' },
+              { id: 101, name: 'Floor 1', kind: 'Floor' }
+            ]
+          }
+        ],
+        total: 1,
+        hierarchy: {
+          102: []
+        }
+      };
+
+      mockApiClient.getLocationHierarchy = vi.fn().mockResolvedValue(filteredHierarchy);
+
+      const result = await service.getLocationHierarchy(request);
+
+      expect(mockAuthManager.getCredentials).toHaveBeenCalledTimes(1);
+      expect(mockApiClient.getLocationHierarchy).toHaveBeenCalledWith(request, mockCredentials);
+      expect(result).toEqual(filteredHierarchy);
+      expect(result.locations).toHaveLength(1);
+      expect(result.locations?.[0]?.kind).toBe('Room');
+      expect(result.locations?.[0]?.isBookable).toBe(true);
+    });
+
+    it('should handle empty hierarchy response', async () => {
+      const emptyHierarchy: ILocationHierarchyResponse = {
+        locations: [],
+        total: 0,
+        hierarchy: {}
+      };
+
+      mockApiClient.getLocationHierarchy = vi.fn().mockResolvedValue(emptyHierarchy);
+
+      const result = await service.getLocationHierarchy();
+
+      expect(result.locations).toHaveLength(0);
+      expect(result.total).toBe(0);
+      expect(Object.keys(result.hierarchy)).toHaveLength(0);
+    });
+
+    it('should handle API client errors and re-throw them', async () => {
+      const apiError = new Error('Matrix API error: 403 Forbidden');
+      mockApiClient.getLocationHierarchy = vi.fn().mockRejectedValue(apiError);
+
+      await expect(service.getLocationHierarchy())
+        .rejects.toThrow('Matrix API error: 403 Forbidden');
+      
+      expect(mockApiClient.getLocationHierarchy).toHaveBeenCalledWith({}, mockCredentials);
+    });
+
+    it('should handle unknown errors using error handler', async () => {
+      const unknownError = 'Unknown error';
+      const errorResponse = {
+        error: {
+          code: 'LOCATION_ERROR',
+          message: 'Location hierarchy service error occurred',
+          timestamp: '2025-01-01T12:00:00.000Z'
+        },
+        httpStatus: 500,
+        requestId: 'test-request-id'
+      };
+
+      mockApiClient.getLocationHierarchy = vi.fn().mockRejectedValue(unknownError);
+      mockErrorHandler.handleError = vi.fn().mockReturnValue(errorResponse);
+
+      await expect(service.getLocationHierarchy())
+        .rejects.toThrow('Location hierarchy service error occurred');
+      
+      expect(mockErrorHandler.handleError).toHaveBeenCalledWith(unknownError, 'LOCATION_ERROR');
+    });
+
+    it('should handle hierarchy with nested relationships', async () => {
+      mockApiClient.getLocationHierarchy = vi.fn().mockResolvedValue(mockHierarchy);
+
+      const result = await service.getLocationHierarchy();
+
+      // Verify hierarchy structure
+      expect(result.hierarchy[100]).toEqual([101]);
+      expect(result.hierarchy[101]).toEqual([102]);
+      expect(result.hierarchy[102]).toEqual([]);
+
+      // Verify ancestor relationships
+      const conferenceRoom = result.locations.find(loc => loc.id === 102);
+      expect(conferenceRoom?.ancestors).toHaveLength(2);
+      expect(conferenceRoom?.ancestors?.[0]?.name).toBe('Main Building');
+      expect(conferenceRoom?.ancestors?.[1]?.name).toBe('Floor 1');
+    });
+  });
+
+  describe('getLocationsByKind', () => {
+    const mockRoomLocations: ILocation[] = [
+      {
+        id: 102,
+        name: 'Conference Room A',
+        kind: 'Room',
+        capacity: 12,
+        isBookable: true,
+        features: ['Projector', 'Whiteboard']
+      },
+      {
+        id: 103,
+        name: 'Conference Room B',
+        kind: 'Room',
+        capacity: 8,
+        isBookable: true,
+        features: ['TV', 'Video Conference']
+      }
+    ];
+
+    const mockHierarchyWithRooms: ILocationHierarchyResponse = {
+      locations: mockRoomLocations,
+      total: 2,
+      hierarchy: {
+        102: [],
+        103: []
+      }
+    };
+
+    it('should successfully get locations by kind', async () => {
+      mockApiClient.getLocationHierarchy = vi.fn().mockResolvedValue(mockHierarchyWithRooms);
+
+      const result = await service.getLocationsByKind('Room');
+
+      expect(mockAuthManager.getCredentials).toHaveBeenCalledTimes(1);
+      expect(mockApiClient.getLocationHierarchy).toHaveBeenCalledWith(
+        {
+          kind: 'Room',
+          includeFacilities: true,
+          includeChildren: true
+        },
+        mockCredentials
+      );
+      expect(result).toEqual(mockRoomLocations);
+      expect(result).toHaveLength(2);
+      expect(result.every(loc => loc.kind === 'Room')).toBe(true);
+    });
+
+    it('should validate kind parameter is non-empty string', async () => {
+      await expect(service.getLocationsByKind(''))
+        .rejects.toThrow('Invalid kind parameter: must be a non-empty string');
+
+      await expect(service.getLocationsByKind('   '))
+        .rejects.toThrow('Invalid kind parameter: must be a non-empty string');
+
+      expect(mockApiClient.getLocationHierarchy).not.toHaveBeenCalled();
+    });
+
+    it('should validate kind parameter is a string', async () => {
+      await expect(service.getLocationsByKind(null as any))
+        .rejects.toThrow('Invalid kind parameter: must be a non-empty string');
+
+      await expect(service.getLocationsByKind(undefined as any))
+        .rejects.toThrow('Invalid kind parameter: must be a non-empty string');
+
+      await expect(service.getLocationsByKind(123 as any))
+        .rejects.toThrow('Invalid kind parameter: must be a non-empty string');
+
+      expect(mockApiClient.getLocationHierarchy).not.toHaveBeenCalled();
+    });
+
+    it('should trim whitespace from kind parameter', async () => {
+      mockApiClient.getLocationHierarchy = vi.fn().mockResolvedValue(mockHierarchyWithRooms);
+
+      const result = await service.getLocationsByKind('  Room  ');
+
+      expect(mockApiClient.getLocationHierarchy).toHaveBeenCalledWith(
+        {
+          kind: 'Room',
+          includeFacilities: true,
+          includeChildren: true
+        },
+        mockCredentials
+      );
+      expect(result).toEqual(mockRoomLocations);
+    });
+
+    it('should handle empty locations response for kind', async () => {
+      const emptyResponse: ILocationHierarchyResponse = {
+        locations: [],
+        total: 0,
+        hierarchy: {}
+      };
+
+      mockApiClient.getLocationHierarchy = vi.fn().mockResolvedValue(emptyResponse);
+
+      const result = await service.getLocationsByKind('NonExistentKind');
+
+      expect(result).toEqual([]);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle different location kinds', async () => {
+      const buildingLocations: ILocation[] = [
+        {
+          id: 100,
+          name: 'Main Building',
+          kind: 'Building',
+          isBookable: false
+        },
+        {
+          id: 200,
+          name: 'Annex Building',
+          kind: 'Building',
+          isBookable: false
+        }
+      ];
+
+      const buildingHierarchy: ILocationHierarchyResponse = {
+        locations: buildingLocations,
+        total: 2,
+        hierarchy: {
+          100: [101, 102],
+          200: [201, 202]
+        }
+      };
+
+      mockApiClient.getLocationHierarchy = vi.fn().mockResolvedValue(buildingHierarchy);
+
+      const result = await service.getLocationsByKind('Building');
+
+      expect(mockApiClient.getLocationHierarchy).toHaveBeenCalledWith(
+        {
+          kind: 'Building',
+          includeFacilities: true,
+          includeChildren: true
+        },
+        mockCredentials
+      );
+      expect(result).toEqual(buildingLocations);
+      expect(result).toHaveLength(2);
+      expect(result.every(loc => loc.kind === 'Building')).toBe(true);
+      expect(result.every(loc => loc.isBookable === false)).toBe(true);
+    });
+
+    it('should handle API client errors and re-throw them', async () => {
+      const apiError = new Error('Matrix API error: 404 Kind not found');
+      mockApiClient.getLocationHierarchy = vi.fn().mockRejectedValue(apiError);
+
+      await expect(service.getLocationsByKind('Room'))
+        .rejects.toThrow('Matrix API error: 404 Kind not found');
+      
+      expect(mockApiClient.getLocationHierarchy).toHaveBeenCalledWith(
+        {
+          kind: 'Room',
+          includeFacilities: true,
+          includeChildren: true
+        },
+        mockCredentials
+      );
+    });
+
+    it('should handle unknown errors using error handler', async () => {
+      const unknownError = 'Unknown error';
+      const errorResponse = {
+        error: {
+          code: 'LOCATION_ERROR',
+          message: 'Location by kind service error occurred',
+          timestamp: '2025-01-01T12:00:00.000Z'
+        },
+        httpStatus: 500,
+        requestId: 'test-request-id'
+      };
+
+      mockApiClient.getLocationHierarchy = vi.fn().mockRejectedValue(unknownError);
+      mockErrorHandler.handleError = vi.fn().mockReturnValue(errorResponse);
+
+      await expect(service.getLocationsByKind('Room'))
+        .rejects.toThrow('Location by kind service error occurred');
+      
+      expect(mockErrorHandler.handleError).toHaveBeenCalledWith(unknownError, 'LOCATION_ERROR');
+    });
+
+    it('should handle locations with facilities and features', async () => {
+      const roomsWithFacilities: ILocation[] = [
+        {
+          id: 102,
+          name: 'Executive Boardroom',
+          kind: 'Room',
+          capacity: 20,
+          isBookable: true,
+          features: ['4K TV', 'Wireless Presentation', 'Audio System'],
+          facilities: [
+            { id: '1', name: 'Video Conferencing', category: 'AV' },
+            { id: '2', name: 'Catering Setup', category: 'Service' }
+          ]
+        }
+      ];
+
+      const hierarchyWithFacilities: ILocationHierarchyResponse = {
+        locations: roomsWithFacilities,
+        total: 1,
+        hierarchy: { 102: [] }
+      };
+
+      mockApiClient.getLocationHierarchy = vi.fn().mockResolvedValue(hierarchyWithFacilities);
+
+      const result = await service.getLocationsByKind('Room');
+
+      expect(result).toHaveLength(1);
+      expect(result[0]?.features).toHaveLength(3);
+      expect(result[0]?.facilities).toHaveLength(2);
+      expect(result[0]?.facilities?.[0]?.name).toBe('Video Conferencing');
     });
   });
 });

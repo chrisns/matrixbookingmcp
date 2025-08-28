@@ -38,14 +38,14 @@ afterAll(() => {
  */
 
 // Suppress console logs during tests unless explicitly needed
-const originalConsoleLog = console.log;
+const originalConsoleLog = console.error;
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 
 // Override console methods to reduce test noise
 // Tests can still explicitly call console methods when needed
-console.log = (...args: any[]) => {
-  // Allow console.log in tests when VITEST_VERBOSE is set
+console.error = (...args: any[]) => {
+// Allow console.error in tests when VITEST_VERBOSE is set
   if (process.env.VITEST_VERBOSE === 'true') {
     originalConsoleLog(...args);
   }
@@ -67,7 +67,7 @@ console.warn = (...args: any[]) => {
  * Restore console methods after all tests
  */
 afterAll(() => {
-  console.log = originalConsoleLog;
+  console.error = originalConsoleLog;
   console.error = originalConsoleError;  
   console.warn = originalConsoleWarn;
 });

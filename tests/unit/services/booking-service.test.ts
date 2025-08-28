@@ -4,13 +4,14 @@ import { IBookingRequest, IBookingResponse, IOwner, IAttendee } from '../../../s
 import { IMatrixAPIClient } from '../../../src/types/api.types.js';
 import { IAuthenticationManager, ICredentials, IUserProfile } from '../../../src/types/authentication.types.js';
 import { IConfigurationManager, IServerConfig } from '../../../src/config/config-manager.js';
-import { ILocation } from '../../../src/types/location.types.js';
+import { ILocation, ILocationService } from '../../../src/types/location.types.js';
 
 describe('BookingService', () => {
   let bookingService: BookingService;
   let mockApiClient: IMatrixAPIClient;
   let mockAuthManager: IAuthenticationManager;
   let mockConfigManager: IConfigurationManager;
+  let mockLocationService: ILocationService;
 
   const mockConfig: IServerConfig = {
     matrixUsername: 'test@example.com',
@@ -63,7 +64,13 @@ describe('BookingService', () => {
       checkAvailability: vi.fn(),
       createBooking: vi.fn(),
       getLocation: vi.fn(),
-      makeRequest: vi.fn()
+      makeRequest: vi.fn(),
+      getCurrentUser: vi.fn(),
+      getUserBookings: vi.fn(),
+      getAllBookings: vi.fn(),
+      getAvailability: vi.fn(),
+      getLocationHierarchy: vi.fn(),
+      getOrganization: vi.fn()
     };
 
     mockAuthManager = {
@@ -78,11 +85,19 @@ describe('BookingService', () => {
       validateConfig: vi.fn()
     };
 
+    mockLocationService = {
+      getLocation: vi.fn(),
+      getPreferredLocation: vi.fn(),
+      getLocationHierarchy: vi.fn(),
+      getLocationsByKind: vi.fn(),
+      validateLocationId: vi.fn()
+    };
+
     vi.mocked(mockConfigManager.getConfig).mockReturnValue(mockConfig);
     vi.mocked(mockAuthManager.getCredentials).mockResolvedValue(mockCredentials);
     vi.mocked(mockAuthManager.getCurrentUser).mockResolvedValue(mockUserProfile);
 
-    bookingService = new BookingService(mockApiClient, mockAuthManager, mockConfigManager);
+    bookingService = new BookingService(mockApiClient, mockAuthManager, mockConfigManager, mockLocationService);
   });
 
   describe('createBooking', () => {

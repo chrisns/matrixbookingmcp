@@ -6,6 +6,9 @@ import { MatrixAPIClient } from '../../../src/api/index.js';
 import { AvailabilityService } from '../../../src/services/availability-service.js';
 import { BookingService } from '../../../src/services/booking-service.js';
 import { LocationService } from '../../../src/services/location-service.js';
+import { UserService } from '../../../src/services/user-service.js';
+import { SearchService } from '../../../src/services/search-service.js';
+import { OrganizationService } from '../../../src/services/organization-service.js';
 
 // Mock dependencies
 vi.mock('../../../src/config/index.js');
@@ -14,6 +17,9 @@ vi.mock('../../../src/api/index.js');
 vi.mock('../../../src/services/availability-service.js');
 vi.mock('../../../src/services/booking-service.js');
 vi.mock('../../../src/services/location-service.js');
+vi.mock('../../../src/services/user-service.js');
+vi.mock('../../../src/services/search-service.js');
+vi.mock('../../../src/services/organization-service.js');
 
 describe('MatrixBookingMCPServer', () => {
   let mcpServer: MatrixBookingMCPServer;
@@ -23,6 +29,9 @@ describe('MatrixBookingMCPServer', () => {
   let mockAvailabilityService: AvailabilityService;
   let mockBookingService: BookingService;
   let mockLocationService: LocationService;
+  let mockUserService: UserService;
+  let mockSearchService: SearchService;
+  let mockOrganizationService: OrganizationService;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -64,7 +73,21 @@ describe('MatrixBookingMCPServer', () => {
 
     mockLocationService = {
       getLocation: vi.fn(),
-      getPreferredLocation: vi.fn()
+      getPreferredLocation: vi.fn(),
+      getLocationHierarchy: vi.fn()
+    } as any;
+
+    mockUserService = {
+      getCurrentUser: vi.fn(),
+      getUserBookings: vi.fn()
+    } as any;
+
+    mockSearchService = {
+      search: vi.fn()
+    } as any;
+
+    mockOrganizationService = {
+      getBookingCategories: vi.fn()
     } as any;
 
     // Setup constructor mocks
@@ -74,6 +97,9 @@ describe('MatrixBookingMCPServer', () => {
     (AvailabilityService as any).mockImplementation(() => mockAvailabilityService);
     (BookingService as any).mockImplementation(() => mockBookingService);
     (LocationService as any).mockImplementation(() => mockLocationService);
+    (UserService as any).mockImplementation(() => mockUserService);
+    (SearchService as any).mockImplementation(() => mockSearchService);
+    (OrganizationService as any).mockImplementation(() => mockOrganizationService);
   });
 
   describe('Constructor', () => {
@@ -234,16 +260,202 @@ describe('MatrixBookingMCPServer', () => {
       expect(mockAvailabilityService.checkAvailability).toBeDefined();
     });
 
+    it('should test user service integration through private method with default parameters', async () => {
+      const mockResponse = {
+        bookings: [
+          {
+            id: 123,
+            status: 'CONFIRMED',
+            timeFrom: '2024-01-15T09:00:00.000Z',
+            timeTo: '2024-01-15T10:00:00.000Z',
+            locationId: 100001,
+            locationKind: 'ROOM',
+            owner: { id: 1, name: 'Test User', email: 'test@example.com' },
+            bookedBy: { id: 1, name: 'Test User', email: 'test@example.com' },
+            attendeeCount: 3,
+            organisation: { id: 1, name: 'Test Org' },
+            isPrivate: false,
+            hasStarted: false,
+            hasEnded: false,
+            ownerIsAttendee: true,
+            source: 'matrix-booking-mcp',
+            version: 1,
+            hasExternalNotes: false,
+            duration: { millis: 3600000 },
+            possibleActions: {
+              edit: true,
+              cancel: true,
+              approve: false,
+              confirm: false,
+              endEarly: false,
+              changeOwner: false,
+              start: false,
+              viewHistory: true
+            },
+            checkInStatus: 'NOT_STARTED',
+            checkInStartTime: '',
+            checkInEndTime: ''
+          }
+        ],
+        total: 1,
+        page: 1,
+        pageSize: 50
+      };
+      (mockUserService.getUserBookings as any).mockResolvedValue(mockResponse);
+
+      // Test the private method by calling it via reflection
+      const handleUserBookings = (mcpServer as any).handleGetUserBookings;
+      const result = await handleUserBookings.call(mcpServer, {});
+
+      expect(mockUserService.getUserBookings).toHaveBeenCalledWith({});
+      expect(result.content[0].text).toContain('Test User');
+      expect(result.content[0].text).toContain('Location 100001');
+      expect(result.content[0].text).toContain('1h');
+      expect(result.isError).toBeUndefined();
+    });
+
+    it('should test user service integration with date filtering', async () => {
+      const mockResponse = {
+        bookings: [
+          {
+            id: 456,
+            status: 'CONFIRMED',
+            timeFrom: '2024-01-16T14:00:00.000Z',
+            timeTo: '2024-01-16T15:30:00.000Z',
+            locationId: 100002,
+            locationKind: 'DESK',
+            owner: { id: 2, name: 'Another User', email: 'another@example.com' },
+            bookedBy: { id: 2, name: 'Another User', email: 'another@example.com' },
+            attendeeCount: 1,
+            organisation: { id: 1, name: 'Test Org' },
+            isPrivate: true,
+            hasStarted: true,
+            hasEnded: false,
+            ownerIsAttendee: true,
+            source: 'matrix-booking-mcp',
+            version: 2,
+            hasExternalNotes: true,
+            duration: { millis: 5400000 },
+            possibleActions: {
+              edit: false,
+              cancel: false,
+              approve: false,
+              confirm: false,
+              endEarly: true,
+              changeOwner: false,
+              start: false,
+              viewHistory: true
+            },
+            checkInStatus: 'CHECKED_IN',
+            checkInStartTime: '2024-01-16T14:05:00.000Z',
+            checkInEndTime: ''
+          }
+        ],
+        total: 1,
+        page: 1,
+        pageSize: 50
+      };
+      (mockUserService.getUserBookings as any).mockResolvedValue(mockResponse);
+
+      // Test the private method by calling it via reflection
+      const handleUserBookings = (mcpServer as any).handleGetUserBookings;
+      const result = await handleUserBookings.call(mcpServer, {
+        dateFrom: '2024-01-16T00:00:00.000Z',
+        dateTo: '2024-01-16T23:59:59.999Z',
+        status: 'ACTIVE'
+      });
+
+      expect(mockUserService.getUserBookings).toHaveBeenCalledWith({
+        startDate: '2024-01-16T00:00:00.000Z',
+        endDate: '2024-01-16T23:59:59.999Z',
+        status: 'ACTIVE'
+      });
+      expect(result.content[0].text).toContain('Another User');
+      expect(result.content[0].text).toContain('Location 100002');
+      expect(result.content[0].text).toContain('1h 30m');
+    });
+
+    it('should test user service integration with pagination', async () => {
+      const mockResponse = {
+        bookings: [],
+        total: 25,
+        page: 2,
+        pageSize: 10
+      };
+      (mockUserService.getUserBookings as any).mockResolvedValue(mockResponse);
+
+      // Test the private method by calling it via reflection
+      const handleUserBookings = (mcpServer as any).handleGetUserBookings;
+      const result = await handleUserBookings.call(mcpServer, {
+        page: 2,
+        pageSize: 10
+      });
+
+      expect(mockUserService.getUserBookings).toHaveBeenCalledWith({
+        page: 2,
+        pageSize: 10
+      });
+      
+      const parsedResult = JSON.parse(result.content[0].text);
+      expect(parsedResult.summary.totalBookings).toBe(25);
+      expect(parsedResult.summary.page).toBe(2);
+      expect(parsedResult.summary.pageSize).toBe(10);
+      expect(parsedResult.summary.hasNext).toBe(true);
+    });
+
+    it('should test user service error handling', async () => {
+      const errorMessage = 'User authentication failed';
+      (mockUserService.getUserBookings as any).mockRejectedValue(new Error(errorMessage));
+
+      // Test the private method by calling it via reflection
+      const handleUserBookings = (mcpServer as any).handleGetUserBookings;
+      const result = await handleUserBookings.call(mcpServer, {});
+
+      expect(mockUserService.getUserBookings).toHaveBeenCalledWith({});
+      expect(result.isError).toBe(true);
+      
+      // Parse the enhanced error response
+      const errorResponse = JSON.parse(result.content[0].text);
+      expect(errorResponse.error.message).toContain(errorMessage);
+      expect(errorResponse.suggestions).toBeDefined();
+      expect(Array.isArray(errorResponse.suggestions)).toBe(true);
+    });
+
+    it('should test duration calculation helper method', () => {
+      // Test the private calculateDuration method
+      const calculateDuration = (mcpServer as any).calculateDuration;
+      
+      // Test 1 hour
+      expect(calculateDuration.call(mcpServer, '2024-01-15T09:00:00.000Z', '2024-01-15T10:00:00.000Z')).toBe('1h');
+      
+      // Test 1 hour 30 minutes
+      expect(calculateDuration.call(mcpServer, '2024-01-15T09:00:00.000Z', '2024-01-15T10:30:00.000Z')).toBe('1h 30m');
+      
+      // Test 30 minutes
+      expect(calculateDuration.call(mcpServer, '2024-01-15T09:00:00.000Z', '2024-01-15T09:30:00.000Z')).toBe('30m');
+      
+      // Test invalid dates
+      expect(calculateDuration.call(mcpServer, 'invalid-date', '2024-01-15T10:00:00.000Z')).toBe('Unknown duration');
+    });
+
     it('should test tool definitions are properly returned', () => {
       // Test the private getTools method
       const getTools = (mcpServer as any).getTools;
       const tools = getTools.call(mcpServer);
       
-      expect(tools).toHaveLength(3);
+      expect(tools).toHaveLength(11);
       expect(tools.map((t: any) => t.name)).toEqual([
         'matrix_booking_check_availability',
         'matrix_booking_create_booking',
-        'matrix_booking_get_location'
+        'matrix_booking_get_location',
+        'get_current_user',
+        'get_booking_categories',
+        'get_locations',
+        'discover_available_facilities',
+        'find_rooms_with_facilities',
+        'get_user_bookings',
+        'health_check',
+        'get_tool_guidance'
       ]);
     });
   });

@@ -7,3 +7,7 @@ export * from './error.types.js';
 export * from './mcp.types.js';
 export * from './api.types.js';
 export * from './validation.types.js';
+export * from './user.types.js';
+export * from './organization.types.js';
+export * from './facility.types.js';
+export * from './search.types.js';

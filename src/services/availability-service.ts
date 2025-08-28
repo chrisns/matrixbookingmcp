@@ -33,7 +33,7 @@ export class AvailabilityService implements IAvailabilityService {
 
   async checkAvailability(request: Partial<IAvailabilityRequest>): Promise<IAvailabilityResponse> {
     try {
-      console.log('AvailabilityService: Checking availability with request:', request);
+      console.error('AvailabilityService: Checking availability with request:', request);
       
       // Validate the request before processing if required fields are present
       if (request.dateFrom || request.dateTo) {
@@ -42,7 +42,7 @@ export class AvailabilityService implements IAvailabilityService {
       
       // Format the request to ensure all required fields are set
       const formattedRequest = this.formatAvailabilityRequest(request);
-      console.log('AvailabilityService: Formatted request:', formattedRequest);
+      console.error('AvailabilityService: Formatted request:', formattedRequest);
       
       // Get credentials from authentication manager
       const credentials = this.authManager.getCredentials();
@@ -50,11 +50,11 @@ export class AvailabilityService implements IAvailabilityService {
       // Call the Matrix API through the API client
       const response = await this.apiClient.checkAvailability(formattedRequest, credentials);
       
-      console.log('AvailabilityService: Received availability response:', response);
+      console.error('AvailabilityService: Received availability response:', response);
       return response;
       
     } catch (error) {
-      console.log('AvailabilityService: Error checking availability:', error);
+      console.error('AvailabilityService: Error checking availability:', error);
       
       // Pass-through error handling - let the error bubble up
       if (error instanceof Error) {
@@ -70,7 +70,7 @@ export class AvailabilityService implements IAvailabilityService {
   }
 
   formatAvailabilityRequest(request: Partial<IAvailabilityRequest>): IAvailabilityRequest {
-    console.log('AvailabilityService: Formatting availability request:', request);
+    console.error('AvailabilityService: Formatting availability request:', request);
     
     const now = new Date();
     const config = this.configManager.getConfig();
@@ -79,7 +79,7 @@ export class AvailabilityService implements IAvailabilityService {
     let dateFrom = request.dateFrom;
     if (!dateFrom) {
       dateFrom = now.toISOString();
-      console.log('AvailabilityService: Using default dateFrom:', dateFrom);
+      console.error('AvailabilityService: Using default dateFrom:', dateFrom);
     }
     
     // Default dateTo to end of day if not provided
@@ -88,7 +88,7 @@ export class AvailabilityService implements IAvailabilityService {
       const endOfDay = new Date(now);
       endOfDay.setHours(23, 59, 59, 999);
       dateTo = endOfDay.toISOString();
-      console.log('AvailabilityService: Using default dateTo:', dateTo);
+      console.error('AvailabilityService: Using default dateTo:', dateTo);
     }
     
     // Default locationId to preferred location if not provided
@@ -101,7 +101,7 @@ export class AvailabilityService implements IAvailabilityService {
         throw new Error(`Invalid MATRIX_PREFERED_LOCATION: '${preferredLocationString}' is not a valid number`);
       }
       
-      console.log('AvailabilityService: Using default locationId:', locationId);
+      console.error('AvailabilityService: Using default locationId:', locationId);
     }
     
     const formattedRequest: IAvailabilityRequest = {
@@ -120,7 +120,7 @@ export class AvailabilityService implements IAvailabilityService {
       throw new Error(`Invalid date range: ${timeRangeValidation.errors.join(', ')}`);
     }
     
-    console.log('AvailabilityService: Request formatted successfully:', formattedRequest);
+    console.error('AvailabilityService: Request formatted successfully:', formattedRequest);
     return formattedRequest;
   }
 

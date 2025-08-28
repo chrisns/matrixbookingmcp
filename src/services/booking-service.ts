@@ -2,6 +2,7 @@ import { IBookingService, IBookingRequest, IBookingResponse, IOwner } from '../t
 import { IMatrixAPIClient } from '../types/api.types.js';
 import { IAuthenticationManager } from '../types/authentication.types.js';
 import { IConfigurationManager } from '../config/config-manager.js';
+import { ILocationService, ILocation } from '../types/location.types.js';
 import { InputValidator } from '../validation/index.js';
 import { IInputValidator } from '../types/validation.types.js';
 import { getCurrentDateString } from '../utils/date-formatting.js';
@@ -10,16 +11,19 @@ export class BookingService implements IBookingService {
   private apiClient: IMatrixAPIClient;
   private authManager: IAuthenticationManager;
   private configManager: IConfigurationManager;
+  private locationService: ILocationService;
   private validator: IInputValidator;
   constructor(
     apiClient: IMatrixAPIClient,
     authManager: IAuthenticationManager,
     configManager: IConfigurationManager,
+    locationService: ILocationService,
     validator?: IInputValidator
   ) {
     this.apiClient = apiClient;
     this.authManager = authManager;
     this.configManager = configManager;
+    this.locationService = locationService;
     this.validator = validator || new InputValidator();
   }
 
@@ -82,6 +86,102 @@ export class BookingService implements IBookingService {
       ownerIsAttendee: defaultOwnerIsAttendee,
       source: defaultSource
     };
+  }
+
+  /**
+   * Resolve location ID from various input types with hierarchical search
+   * @param locationInput - Can be number (ID or room number), string (room name)
+   * @returns Resolved location ID
+   */
+  async resolveLocationId(locationInput: string | number): Promise<number> {
+    // If it's a number >= 100000, treat as direct location ID
+    if (typeof locationInput === 'number' && locationInput >= 100000) {
+      // Validate that this location ID exists
+      try {
+        await this.locationService.getLocation(locationInput);
+        return locationInput;
+      } catch {
+        throw new Error(`Location ID ${locationInput} not found`);
+      }
+    }
+
+    // For room numbers/names, perform hierarchical search
+    const searchTerm = locationInput.toString();
+    
+    try {
+      // Step 1: Search within preferred building hierarchy
+      const config = this.configManager.getConfig();
+      const preferredBuildingId = parseInt(config.matrixPreferredLocation, 10);
+      
+      if (!isNaN(preferredBuildingId)) {
+        const preferredBuildingHierarchy = await this.locationService.getLocationHierarchy({
+          parentId: preferredBuildingId,
+          includeChildren: true,
+          includeFacilities: false
+        });
+
+        // Look for exact or partial matches in preferred building
+        const preferredMatch = this.findLocationInHierarchy(searchTerm, preferredBuildingHierarchy.locations);
+        if (preferredMatch) {
+          return preferredMatch.id;
+        }
+      }
+
+      // Step 2: Search entire organization hierarchy if not found in preferred building
+      const globalHierarchy = await this.locationService.getLocationHierarchy({
+        includeChildren: true,
+        includeFacilities: false
+      });
+
+      const globalMatch = this.findLocationInHierarchy(searchTerm, globalHierarchy.locations);
+      if (globalMatch) {
+        return globalMatch.id;
+      }
+
+      // If no matches found
+      throw new Error(`Location "${searchTerm}" not found in organization hierarchy`);
+
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found in organization')) {
+        throw error;
+      }
+      throw new Error(`Error resolving location "${searchTerm}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Find location in hierarchy by name or number
+   * @param searchTerm - Location name or number to search for
+   * @param locations - Array of locations to search
+   * @returns Matching location or null
+   */
+  private findLocationInHierarchy(searchTerm: string, locations: ILocation[]): { id: number; name: string } | null {
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    // First pass: Look for exact matches
+    for (const location of locations) {
+      if (location.name && location.name.toLowerCase() === searchLower) {
+        return { id: location.id, name: location.name };
+      }
+    }
+    
+    // Second pass: Look for partial matches and room number patterns
+    for (const location of locations) {
+      // Check if location name contains the search term
+      if (location.name && location.name.toLowerCase().includes(searchLower)) {
+        return { id: location.id, name: location.name };
+      }
+      
+      // Check if search term matches room number pattern (e.g., "701" matches "Room 701")
+      if (location.name && /\b\d+\b/.test(location.name)) {
+        const roomNumbers = location.name.match(/\b\d+\b/g);
+        if (roomNumbers && roomNumbers.some((num: string) => num === searchTerm)) {
+          return { id: location.id, name: location.name };
+        }
+      }
+    }
+    
+    return null;
   }
 
   validateBookingRequest(request: IBookingRequest): boolean {

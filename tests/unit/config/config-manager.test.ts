@@ -159,7 +159,7 @@ describe('ConfigurationManager', () => {
       try {
         // Simulate config being stringified for logging (which we want to prevent)
         const configString = JSON.stringify(config);
-        console.log('Config loaded:', configString);
+        console.error('Config loaded:', configString);
         
         // Verify the password was logged (this shows the vulnerability exists)
         expect(configString).toContain('secretpassword123');

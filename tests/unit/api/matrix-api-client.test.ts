@@ -48,13 +48,13 @@ describe('MatrixAPIClient', () => {
     mockAuthManager = {
       getCredentials: vi.fn().mockReturnValue(mockCredentials),
       encodeCredentials: vi.fn().mockReturnValue(encodedCredentials),
-      createAuthHeader: vi.fn(),
-      getCurrentUser: vi.fn().mockReturnValue({
+      createAuthHeader: vi.fn().mockReturnValue({
         'Authorization': `Basic ${encodedCredentials}`,
         'Content-Type': 'application/json;charset=UTF-8',
         'x-matrix-source': 'WEB',
         'x-time-zone': 'Europe/London'
-      })
+      }),
+      getCurrentUser: vi.fn()
     };
 
     // Setup mock config manager

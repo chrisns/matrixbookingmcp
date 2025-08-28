@@ -34,7 +34,7 @@ Follow these specific patterns from the codebase:
 - Configuration: Use ConfigurationManager class (src/config/index.ts)
 - Error handling: Explicit try/catch with process.exit(1) for startup failures
 - Imports: Use .js extensions for local imports: `from './config/index.js'`
-- Console logging: Use structured console.log with descriptive prefixes
+- Console logging: Use structured console.error with descriptive prefixes
 - Export pattern: `export {};` at end of executable files
 
 ## Matrix API Integration
@@ -51,5 +51,6 @@ pnpm test           # ALWAYS run first - verify tests pass
 pnpm lint           # Check code style
 pnpm typecheck      # Verify TypeScript compilation
 pnpm build          # Compile to dist/
-pnpm test           # ALWAYS run after changes
+pnpm build          # ALWAYS run after changes
+pnpm test           # ALWAYS run after changes 
 ```
