@@ -34,7 +34,8 @@ describe('Memory Usage Performance Testing', () => {
       matrixPassword: 'testpass',
       matrixPreferredLocation: 'London',
       apiTimeout: 5000,
-      apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
+      apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
+      cacheEnabled: true
     };
 
     mockAuthManager = {

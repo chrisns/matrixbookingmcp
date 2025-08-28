@@ -265,7 +265,8 @@ describe('get_user_bookings MCP Tool', () => {
       
       expect(parsedResponse.bookings[0]).toEqual({
         id: 123,
-        location: 'Location 456',
+        locationId: 456,
+        locationName: 'Location ID: 456',
         timeSlot: '2024-01-15T09:00:00.000Z to 2024-01-15T10:00:00.000Z',
         status: 'CONFIRMED',
         duration: '1h',

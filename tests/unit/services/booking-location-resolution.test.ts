@@ -17,7 +17,8 @@ describe('BookingService - Location Resolution', () => {
     matrixPassword: 'password',
     matrixPreferredLocation: '100001', // Building ID
     apiTimeout: 5000,
-    apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
+    apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
+    cacheEnabled: true
   };
 
   const mockCredentials: ICredentials = {

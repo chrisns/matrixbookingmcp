@@ -181,7 +181,8 @@ describe('Stateless Architecture Validation', () => {
       // Verify each service method was called with correct parameters
       expect(mcpServer['availabilityService'].checkAvailability).toHaveBeenCalledTimes(2);
       expect(mcpServer['locationService'].getPreferredLocation).toHaveBeenCalledTimes(1);
-      expect(mcpServer['locationService'].getLocation).toHaveBeenCalledTimes(1);
+      // getLocation is called more times now due to location name resolution in availability checks
+      expect(mcpServer['locationService'].getLocation).toHaveBeenCalledTimes(3);
     });
 
     it('should generate unique request IDs without persistence', () => {

@@ -6,6 +6,7 @@ export interface IServerConfig {
   matrixPreferredLocation: string;
   apiTimeout: number;
   apiBaseUrl: string;
+  cacheEnabled: boolean;
 }
 
 export interface IConfigurationManager {
@@ -56,12 +57,16 @@ export class ConfigurationManager implements IConfigurationManager {
     const parsedTimeout = parseInt(timeoutString, 10);
     const apiTimeout = isNaN(parsedTimeout) ? 5000 : parsedTimeout;
 
+    const cacheEnabledString = process.env['CACHE_ENABLED'] || 'true';
+    const cacheEnabled = cacheEnabledString.toLowerCase() !== 'false';
+
     return {
       matrixUsername: process.env['MATRIX_USERNAME']!,
       matrixPassword: process.env['MATRIX_PASSWORD']!,
       matrixPreferredLocation: process.env['MATRIX_PREFERED_LOCATION']!,
       apiTimeout,
-      apiBaseUrl: process.env['MATRIX_API_BASE_URL'] || 'https://app.matrixbooking.com/api/v1'
+      apiBaseUrl: process.env['MATRIX_API_BASE_URL'] || 'https://app.matrixbooking.com/api/v1',
+      cacheEnabled
     };
   }
 }

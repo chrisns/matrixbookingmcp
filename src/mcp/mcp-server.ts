@@ -188,6 +188,10 @@ export class MatrixBookingMCPServer {
               type: 'number',
               description: 'The Matrix location ID to check. Defaults to configured preferred location.'
             },
+            locationName: {
+              type: 'string',
+              description: 'Location name or room number to check (e.g., "Room 701", "Conference Room A"). Alternative to locationId. Searches within preferred building first, then organization-wide.'
+            },
             duration: {
               type: 'number',
               description: 'Optional minimum duration in minutes for availability slots'
@@ -471,14 +475,46 @@ export class MatrixBookingMCPServer {
       if (args['dateTo']) {
         request.dateTo = args['dateTo'] as string;  
       }
+      // Handle location resolution - either locationId or locationName
       if (args['locationId']) {
         request.locationId = args['locationId'] as number;
+      } else if (args['locationName']) {
+        // Resolve location name to ID
+        const locationName = args['locationName'] as string;
+        console.error('MCP Server: Resolving location name for availability:', locationName);
+        
+        try {
+          const resolvedLocationId = await this.bookingService.resolveLocationId(locationName);
+          request.locationId = resolvedLocationId;
+          console.error('MCP Server: Resolved location ID for availability:', resolvedLocationId);
+        } catch (error) {
+          console.error('MCP Server: Location resolution failed for availability:', error);
+          return this.formatEnhancedError(error, 'matrix_booking_check_availability', 'availability');
+        }
       }
+      
       if (args['duration']) {
         request.duration = args['duration'] as number;
       }
 
       const response = await this.availabilityService.checkAvailability(request);
+      
+      // Add location names to time slots if available
+      if (response.slots && response.slots.length > 0) {
+        const locationIds = response.slots.map(slot => slot.locationId);
+        const locationMap = await this.resolveLocationNames(locationIds);
+        
+        response.slots = response.slots.map(slot => ({
+          ...slot,
+          locationName: locationMap.get(slot.locationId)?.name || `Location ID: ${slot.locationId}`
+        }));
+      }
+      
+      // Add location name to main location if available
+      if (response.location && response.location.id) {
+        const locationMap = await this.resolveLocationNames([response.location.id]);
+        response.location.name = locationMap.get(response.location.id)?.name || response.location.name;
+      }
 
       return {
         content: [
@@ -553,6 +589,12 @@ export class MatrixBookingMCPServer {
 
       const formattedRequest = await this.bookingService.formatBookingRequest(partialRequest);
       const response = await this.bookingService.createBooking(formattedRequest);
+      
+      // Add location name to booking response
+      if (response.locationId) {
+        const locationMap = await this.resolveLocationNames([response.locationId]);
+        response.locationName = locationMap.get(response.locationId)?.name || `Location ID: ${response.locationId}`;
+      }
 
       return {
         content: [
@@ -970,6 +1012,10 @@ export class MatrixBookingMCPServer {
 
       const response = await this.userService.getUserBookings(request);
 
+      // Extract all unique location IDs from bookings
+      const locationIds = response.bookings.map(booking => booking.locationId);
+      const locationMap = await this.resolveLocationNames(locationIds);
+
       // Format response for better readability
       const formattedResponse = {
         summary: {
@@ -978,20 +1024,24 @@ export class MatrixBookingMCPServer {
           pageSize: response.pageSize || 50,
           hasNext: (response.total > ((response.page || 1) * (response.pageSize || 50)))
         },
-        bookings: response.bookings.map(booking => ({
-          id: booking.id,
-          location: `Location ${booking.locationId}`,
-          timeSlot: `${booking.timeFrom} to ${booking.timeTo}`,
-          status: booking.status,
-          duration: this.calculateDuration(booking.timeFrom, booking.timeTo),
-          attendeeCount: booking.attendeeCount || 0,
-          owner: booking.owner?.name || 'Unknown',
-          locationKind: booking.locationKind,
-          organisation: booking.organisation?.name || 'Unknown',
-          isPrivate: booking.isPrivate,
-          hasStarted: booking.hasStarted,
-          hasEnded: booking.hasEnded
-        }))
+        bookings: response.bookings.map(booking => {
+          const locationInfo = locationMap.get(booking.locationId);
+          return {
+            id: booking.id,
+            locationId: booking.locationId,
+            locationName: locationInfo?.name || `Location ID: ${booking.locationId}`,
+            timeSlot: `${booking.timeFrom} to ${booking.timeTo}`,
+            status: booking.status,
+            duration: this.calculateDuration(booking.timeFrom, booking.timeTo),
+            attendeeCount: booking.attendeeCount || 0,
+            owner: booking.owner?.name || 'Unknown',
+            locationKind: booking.locationKind,
+            organisation: booking.organisation?.name || 'Unknown',
+            isPrivate: booking.isPrivate,
+            hasStarted: booking.hasStarted,
+            hasEnded: booking.hasEnded
+          };
+        })
       };
 
       return {
@@ -1332,6 +1382,25 @@ export class MatrixBookingMCPServer {
       console.error('MCP Server: Error in get tool guidance:', error);
       return this.formatEnhancedError(error, 'get_tool_guidance', 'guidance');
     }
+  }
+
+  private async resolveLocationNames(locationIds: number[]): Promise<Map<number, { id: number; name: string }>> {
+    const uniqueLocationIds = [...new Set(locationIds)];
+    const locationMap = new Map<number, { id: number; name: string }>();
+    
+    // Batch fetch location details for all unique location IDs
+    const locationPromises = uniqueLocationIds.map(async (locationId) => {
+      try {
+        const location = await this.locationService.getLocation(locationId);
+        locationMap.set(locationId, { id: locationId, name: location.name });
+      } catch (error) {
+        console.warn(`Failed to resolve location ID ${locationId}:`, error);
+        locationMap.set(locationId, { id: locationId, name: `Location ID: ${locationId}` });
+      }
+    });
+    
+    await Promise.all(locationPromises);
+    return locationMap;
   }
 
   private calculateDuration(timeFrom: string, timeTo: string): string {

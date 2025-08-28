@@ -26,7 +26,8 @@ describe('Security Comprehensive Tests', () => {
     matrixPassword: 'securitytestpass123',
     matrixPreferredLocation: 'SEC001',
     apiTimeout: 5000,
-    apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
+    apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
+    cacheEnabled: true
   };
 
   beforeEach(() => {

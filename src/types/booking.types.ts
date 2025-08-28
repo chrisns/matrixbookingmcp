@@ -38,6 +38,7 @@ export interface IBookingResponse {
   timeTo: string;
   organisation: { id: number; name: string };
   locationId: number;
+  locationName?: string;
   locationKind: string;
   owner: IOwner;
   bookedBy: IOwner;

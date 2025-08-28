@@ -38,7 +38,8 @@ describe.skip('Performance and Timeout Testing', () => {
       matrixPassword: 'testpass',
       matrixPreferredLocation: 'London',
       apiTimeout: 5000, // 5 second timeout
-      apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
+      apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
+      cacheEnabled: true
     };
 
     mockAuthManager = {

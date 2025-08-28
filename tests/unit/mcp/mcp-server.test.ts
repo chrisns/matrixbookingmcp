@@ -309,7 +309,7 @@ describe('MatrixBookingMCPServer', () => {
 
       expect(mockUserService.getUserBookings).toHaveBeenCalledWith({});
       expect(result.content[0].text).toContain('Test User');
-      expect(result.content[0].text).toContain('Location 100001');
+      expect(result.content[0].text).toContain('locationId');
       expect(result.content[0].text).toContain('1h');
       expect(result.isError).toBeUndefined();
     });
@@ -371,7 +371,7 @@ describe('MatrixBookingMCPServer', () => {
         status: 'ACTIVE'
       });
       expect(result.content[0].text).toContain('Another User');
-      expect(result.content[0].text).toContain('Location 100002');
+      expect(result.content[0].text).toContain('locationId');
       expect(result.content[0].text).toContain('1h 30m');
     });
 

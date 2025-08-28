@@ -97,7 +97,8 @@ describe('ConfigurationManager', () => {
         matrixPassword: 'testpass',
         matrixPreferredLocation: 'loc123',
         apiTimeout: 5000,
-        apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
+        apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
+        cacheEnabled: true
       };
 
       expect(config).toEqual(expectedConfig);
@@ -109,12 +110,14 @@ describe('ConfigurationManager', () => {
       process.env['MATRIX_PREFERED_LOCATION'] = 'loc123';
       process.env['MATRIX_API_TIMEOUT'] = '10000';
       process.env['MATRIX_API_BASE_URL'] = 'https://custom.api.url/v1';
+      process.env['CACHE_ENABLED'] = 'false';
 
       const configManager = new ConfigurationManager(false);
       const config = configManager.getConfig();
 
       expect(config.apiTimeout).toBe(10000);
       expect(config.apiBaseUrl).toBe('https://custom.api.url/v1');
+      expect(config.cacheEnabled).toBe(false);
     });
 
     it('should handle invalid timeout value by defaulting to 5000', () => {
@@ -258,6 +261,59 @@ describe('ConfigurationManager', () => {
       process.env['MATRIX_PREFERED_LOCATION'] = '  loc123  ';
 
       expect(() => new ConfigurationManager(false)).not.toThrow();
+    });
+  });
+
+  describe('cache configuration', () => {
+    it('should default cacheEnabled to true when CACHE_ENABLED is not set', () => {
+      process.env['MATRIX_USERNAME'] = 'testuser';
+      process.env['MATRIX_PASSWORD'] = 'testpass';
+      process.env['MATRIX_PREFERED_LOCATION'] = 'loc123';
+
+      const configManager = new ConfigurationManager(false);
+      const config = configManager.getConfig();
+
+      expect(config.cacheEnabled).toBe(true);
+    });
+
+    it('should set cacheEnabled to false when CACHE_ENABLED is "false"', () => {
+      process.env['MATRIX_USERNAME'] = 'testuser';
+      process.env['MATRIX_PASSWORD'] = 'testpass';
+      process.env['MATRIX_PREFERED_LOCATION'] = 'loc123';
+      process.env['CACHE_ENABLED'] = 'false';
+
+      const configManager = new ConfigurationManager(false);
+      const config = configManager.getConfig();
+
+      expect(config.cacheEnabled).toBe(false);
+    });
+
+    it('should set cacheEnabled to false when CACHE_ENABLED is "FALSE"', () => {
+      process.env['MATRIX_USERNAME'] = 'testuser';
+      process.env['MATRIX_PASSWORD'] = 'testpass';
+      process.env['MATRIX_PREFERED_LOCATION'] = 'loc123';
+      process.env['CACHE_ENABLED'] = 'FALSE';
+
+      const configManager = new ConfigurationManager(false);
+      const config = configManager.getConfig();
+
+      expect(config.cacheEnabled).toBe(false);
+    });
+
+    it('should set cacheEnabled to true for any value other than "false"', () => {
+      const testValues = ['true', 'TRUE', 'yes', '1', 'enabled', 'anything'];
+      
+      testValues.forEach(value => {
+        process.env['MATRIX_USERNAME'] = 'testuser';
+        process.env['MATRIX_PASSWORD'] = 'testpass';
+        process.env['MATRIX_PREFERED_LOCATION'] = 'loc123';
+        process.env['CACHE_ENABLED'] = value;
+
+        const configManager = new ConfigurationManager(false);
+        const config = configManager.getConfig();
+
+        expect(config.cacheEnabled).toBe(true);
+      });
     });
   });
 });

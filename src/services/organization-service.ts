@@ -15,6 +15,7 @@ export class OrganizationService implements IOrganizationService {
   private apiClient: IMatrixAPIClient;
   private authManager: IAuthenticationManager;
   private errorHandler: IErrorHandler;
+  private configManager: IConfigurationManager;
   private cache: Map<string, ICacheEntry<unknown>> = new Map();
 
   private readonly CACHE_TTL = {
@@ -25,11 +26,12 @@ export class OrganizationService implements IOrganizationService {
 
   constructor(
     apiClient: IMatrixAPIClient,
-    _configManager: IConfigurationManager,
+    configManager: IConfigurationManager,
     authManager: IAuthenticationManager,
     errorHandler?: IErrorHandler
   ) {
     this.apiClient = apiClient;
+    this.configManager = configManager;
     this.authManager = authManager;
     this.errorHandler = errorHandler || new ErrorHandler();
   }
@@ -43,12 +45,14 @@ export class OrganizationService implements IOrganizationService {
         throw new Error(`Invalid organization ID: ${organizationId}. Organization ID must be a positive integer.`);
       }
 
-      // Check cache first
+      // Check cache first (only if caching is enabled)
       const cacheKey = `org_${organizationId}`;
-      const cachedData = this.getCachedData<IOrganizationResponse>(cacheKey);
-      if (cachedData) {
-        console.error('OrganizationService: Returning cached organization data');
-        return cachedData;
+      if (this.configManager.getConfig().cacheEnabled) {
+        const cachedData = this.getCachedData<IOrganizationResponse>(cacheKey);
+        if (cachedData) {
+          console.error('OrganizationService: Returning cached organization data');
+          return cachedData;
+        }
       }
 
       // Get credentials from authentication manager
@@ -57,8 +61,10 @@ export class OrganizationService implements IOrganizationService {
       // Call the Matrix API through the API client
       const organization = await this.apiClient.getOrganization(organizationId, credentials);
 
-      // Cache the result
-      this.setCachedData(cacheKey, organization, this.CACHE_TTL.ORGANIZATION);
+      // Cache the result (only if caching is enabled)
+      if (this.configManager.getConfig().cacheEnabled) {
+        this.setCachedData(cacheKey, organization, this.CACHE_TTL.ORGANIZATION);
+      }
 
       console.error('OrganizationService: Retrieved organization:', organization);
       return organization;
@@ -83,20 +89,24 @@ export class OrganizationService implements IOrganizationService {
     try {
       console.error('OrganizationService: Getting booking categories for organization:', organizationId);
 
-      // Check cache first
+      // Check cache first (only if caching is enabled)
       const cacheKey = `categories_${organizationId}`;
-      const cachedData = this.getCachedData<IBookingCategory[]>(cacheKey);
-      if (cachedData) {
-        console.error('OrganizationService: Returning cached booking categories');
-        return cachedData;
+      if (this.configManager.getConfig().cacheEnabled) {
+        const cachedData = this.getCachedData<IBookingCategory[]>(cacheKey);
+        if (cachedData) {
+          console.error('OrganizationService: Returning cached booking categories');
+          return cachedData;
+        }
       }
 
       // Get full organization data (which includes categories)
       const organization = await this.getOrganization(organizationId);
       const categories = organization.categories;
 
-      // Cache the categories separately for more granular caching
-      this.setCachedData(cacheKey, categories, this.CACHE_TTL.CATEGORIES);
+      // Cache the categories separately for more granular caching (only if caching is enabled)
+      if (this.configManager.getConfig().cacheEnabled) {
+        this.setCachedData(cacheKey, categories, this.CACHE_TTL.CATEGORIES);
+      }
 
       console.error('OrganizationService: Retrieved booking categories:', categories);
       return categories;
@@ -121,20 +131,24 @@ export class OrganizationService implements IOrganizationService {
     try {
       console.error('OrganizationService: Getting location kinds for organization:', organizationId);
 
-      // Check cache first
+      // Check cache first (only if caching is enabled)
       const cacheKey = `locationKinds_${organizationId}`;
-      const cachedData = this.getCachedData<ILocationKind[]>(cacheKey);
-      if (cachedData) {
-        console.error('OrganizationService: Returning cached location kinds');
-        return cachedData;
+      if (this.configManager.getConfig().cacheEnabled) {
+        const cachedData = this.getCachedData<ILocationKind[]>(cacheKey);
+        if (cachedData) {
+          console.error('OrganizationService: Returning cached location kinds');
+          return cachedData;
+        }
       }
 
       // Get full organization data (which includes location kinds)
       const organization = await this.getOrganization(organizationId);
       const locationKinds = organization.locationKinds;
 
-      // Cache the location kinds separately for more granular caching
-      this.setCachedData(cacheKey, locationKinds, this.CACHE_TTL.LOCATION_KINDS);
+      // Cache the location kinds separately for more granular caching (only if caching is enabled)
+      if (this.configManager.getConfig().cacheEnabled) {
+        this.setCachedData(cacheKey, locationKinds, this.CACHE_TTL.LOCATION_KINDS);
+      }
 
       console.error('OrganizationService: Retrieved location kinds:', locationKinds);
       return locationKinds;

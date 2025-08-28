@@ -41,7 +41,12 @@ MATRIX_API_TIMEOUT=30000
 MATRIX_API_MAX_CONNECTIONS=10
 MATRIX_API_KEEP_ALIVE=true
 
-# Cache TTL overrides in seconds (optional)
+# Cache Configuration (default: true)
+# Set to false to completely disable all caching
+# Improves consistency in distributed environments but may impact performance
+CACHE_ENABLED=true
+
+# Cache TTL overrides in seconds (optional - only applies when CACHE_ENABLED=true)
 CACHE_TTL_ORGANIZATION=86400    # 24 hours (default)
 CACHE_TTL_LOCATIONS=14400       # 4 hours (default)
 CACHE_TTL_FACILITIES=3600       # 1 hour (default)
@@ -91,6 +96,7 @@ LOG_LEVEL=debug
 
 # Performance tuning (optional)
 MATRIX_API_TIMEOUT=30000
+CACHE_ENABLED=true
 CACHE_TTL_ORGANIZATION=86400
 ENABLE_AVAILABILITY_CHECK=true
 

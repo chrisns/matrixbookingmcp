@@ -12,7 +12,8 @@ describe('AuthenticationManager', () => {
     matrixPassword: 'testpass123',
     matrixPreferredLocation: 'LOC001',
     apiTimeout: 5000,
-    apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
+    apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
+    cacheEnabled: true
   };
 
   beforeEach(() => {
@@ -311,7 +312,8 @@ describe('AuthenticationManager', () => {
         matrixPassword: 'prodpassword123',
         matrixPreferredLocation: 'PROD_LOC_001',
         apiTimeout: 5000,
-        apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
+        apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
+        cacheEnabled: true
       };
 
       mockConfigManager.getConfig = vi.fn().mockReturnValue(productionConfig);

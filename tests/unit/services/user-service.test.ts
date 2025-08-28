@@ -36,7 +36,8 @@ describe('UserService', () => {
       matrixPassword: 'testpass',
       matrixPreferredLocation: '42',
       apiTimeout: 5000,
-      apiBaseUrl: 'https://app.matrixbooking.com/api/v1'
+      apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
+      cacheEnabled: true
     };
 
     // Setup mock auth manager

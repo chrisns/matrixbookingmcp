@@ -444,7 +444,7 @@ export class SearchService implements ISearchService {
     }
     
     // Generate match reason
-    result.matchReason = this.generateMatchReason(result, requirements);
+    result.matchReason = this.generateMatchReason(result);
     
     return result;
   }
@@ -614,10 +614,8 @@ export class SearchService implements ISearchService {
   /**
    * Generate match reason
    */
-  // eslint-disable-next-line no-unused-vars
   private generateMatchReason(
-    result: ISearchResult,
-    _requirements: IParsedSearchRequirements
+    result: ISearchResult
   ): string {
     const reasons: string[] = [];
     

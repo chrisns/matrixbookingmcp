@@ -30,6 +30,7 @@ export interface ITimeSlot {
   to: string;        // ISO 8601 format
   available: boolean;
   locationId: number;
+  locationName?: string;
 }
 
 export interface IAvailabilityService {
