@@ -13,7 +13,6 @@ import {
   ILocationHierarchyResponse 
 } from '../../../src/types/location.types.js';
 import { IOrganizationResponse } from '../../../src/types/organization.types.js';
-import { IAvailabilityResponse } from '../../../src/types/availability.types.js';
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -216,7 +215,7 @@ describe('MatrixAPIClient - Extended Endpoints', () => {
       const result = await client.getUserBookings(request, mockCredentials);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://app.matrixbooking.com/api/v1/user/current/bookings',
+        'https://app.matrixbooking.com/api/v1/user/current/bookings?include=locations&include=visit&include=facilities&include=extras&include=bookingSettings&include=layouts&include=ancestors',
         expect.objectContaining({
           method: 'GET'
         })
@@ -253,7 +252,7 @@ describe('MatrixAPIClient - Extended Endpoints', () => {
       const result = await client.getUserBookings(request, mockCredentials);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://app.matrixbooking.com/api/v1/user/current/bookings?startDate=2025-01-01&endDate=2025-01-31&status=ACTIVE&page=1&pageSize=10',
+        'https://app.matrixbooking.com/api/v1/user/current/bookings?startDate=2025-01-01&endDate=2025-01-31&status=ACTIVE&page=1&pageSize=10&include=locations&include=visit&include=facilities&include=extras&include=bookingSettings&include=layouts&include=ancestors',
         expect.objectContaining({
           method: 'GET'
         })
@@ -358,46 +357,6 @@ describe('MatrixAPIClient - Extended Endpoints', () => {
     });
   });
 
-  describe('getAvailability', () => {
-    it('should successfully get availability', async () => {
-      const mockAvailabilityResponse: IAvailabilityResponse = {
-        available: true,
-        slots: [
-          {
-            from: '2025-01-15T09:00:00.000Z',
-            to: '2025-01-15T17:00:00.000Z',
-            available: true,
-            locationId: 42
-          }
-        ],
-        location: {
-          id: 42,
-          name: 'Conference Room A',
-          kind: 'ROOM'
-        }
-      };
-
-      const mockResponse = {
-        ok: true,
-        status: 200,
-        statusText: 'OK',
-        headers: new Map([['content-type', 'application/json']]),
-        json: vi.fn().mockResolvedValue(mockAvailabilityResponse)
-      };
-
-      mockFetch.mockResolvedValue(mockResponse);
-
-      const result = await client.getAvailability(mockCredentials);
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://app.matrixbooking.com/api/v1/availability',
-        expect.objectContaining({
-          method: 'GET'
-        })
-      );
-      expect(result).toEqual(mockAvailabilityResponse);
-    });
-  });
 
   describe('getLocationHierarchy', () => {
     it('should successfully get location hierarchy with no parameters', async () => {

@@ -76,7 +76,6 @@ describe('AvailabilityService', () => {
       getCurrentUser: vi.fn(),
       getUserBookings: vi.fn(),
       getAllBookings: vi.fn(),
-      getAvailability: vi.fn(),
       getLocationHierarchy: vi.fn(),
       getOrganization: vi.fn()
     };
@@ -121,7 +120,7 @@ describe('AvailabilityService', () => {
         dateFrom: '2024-01-01T09:00:00.000Z',
         dateTo: '2024-01-01T17:00:00.000Z',
         locationId: 1,
-        duration: 60
+        bookingCategory: 123
       };
 
       const mockResponse: IAvailabilityResponse = {
@@ -255,7 +254,7 @@ describe('AvailabilityService', () => {
         dateFrom: '2024-01-01T09:00:00.000Z',
         dateTo: '2024-01-01T17:00:00.000Z',
         locationId: 1,
-        duration: 60
+        bookingCategory: 123
       };
 
       const result = service.formatAvailabilityRequest(request);
@@ -310,17 +309,17 @@ describe('AvailabilityService', () => {
       expect(result.dateFrom).toBe('2024-01-15T10:30:00.000Z');
       expect(result.dateTo).toBe('2024-01-15T23:59:59.999Z');
       expect(result.locationId).toBe(42);
-      expect(result.duration).toBeUndefined();
+      expect(result.bookingCategory).toBeUndefined();
     });
 
-    it('should preserve duration when provided', () => {
+    it('should preserve booking category when provided', () => {
       const request: Partial<IAvailabilityRequest> = {
-        duration: 90
+        bookingCategory: 90
       };
 
       const result = service.formatAvailabilityRequest(request);
 
-      expect(result.duration).toBe(90);
+      expect(result.bookingCategory).toBe(90);
     });
 
     it('should throw error for invalid preferred location configuration', () => {

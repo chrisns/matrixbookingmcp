@@ -110,8 +110,8 @@ export class AvailabilityService implements IAvailabilityService {
       locationId
     };
     
-    if (request.duration !== undefined) {
-      formattedRequest.duration = request.duration;
+    if (request.bookingCategory !== undefined) {
+      formattedRequest.bookingCategory = request.bookingCategory;
     }
     
     // Validate that dateFrom is before dateTo using centralized validator
@@ -150,11 +150,11 @@ export class AvailabilityService implements IAvailabilityService {
       }
     }
 
-    // Validate duration if provided
-    if (request.duration !== undefined) {
-      const sanitizedDuration = this.sanitizer.sanitizeNumericId(request.duration);
-      if (sanitizedDuration === null || sanitizedDuration <= 0) {
-        errors.push('Duration must be a positive number');
+    // Validate booking category if provided
+    if (request.bookingCategory !== undefined) {
+      const sanitizedCategory = this.sanitizer.sanitizeNumericId(request.bookingCategory);
+      if (sanitizedCategory === null || sanitizedCategory <= 0) {
+        errors.push('Booking category must be a positive number');
       }
     }
 

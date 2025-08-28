@@ -81,7 +81,7 @@ describe('MatrixAPIClient', () => {
   });
 
   describe('checkAvailability', () => {
-    it('should make a POST request to availability endpoint', async () => {
+    it('should make a GET request to availability endpoint with query parameters', async () => {
       const mockAvailabilityRequest: IAvailabilityRequest = {
         dateFrom: '2024-01-01T09:00:00.000',
         dateTo: '2024-01-01T17:00:00.000',
@@ -102,21 +102,63 @@ describe('MatrixAPIClient', () => {
 
       const result = await client.checkAvailability(mockAvailabilityRequest, mockCredentials);
 
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/availability?' +
+        'l=1&' +
+        'f=2024-01-01T09%3A00%3A00.000&' +
+        't=2024-01-01T17%3A00%3A00.000&' +
+        'include=locations&include=facilities&include=layouts&include=bookingSettings&include=timeslots';
+
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://app.matrixbooking.com/api/v1/availability',
+        expectedUrl,
         expect.objectContaining({
-          method: 'POST',
+          method: 'GET',
           headers: expect.objectContaining({
             'Authorization': `Basic ${encodedCredentials}`,
             'Content-Type': 'application/json;charset=UTF-8',
             'x-matrix-source': 'WEB',
             'x-time-zone': 'Europe/London'
-          }),
-          body: JSON.stringify(mockAvailabilityRequest)
+          })
         })
       );
 
       expect(result).toEqual(mockAvailabilityResponse);
+    });
+
+    it('should include booking category when provided', async () => {
+      const mockAvailabilityRequest: IAvailabilityRequest = {
+        dateFrom: '2024-01-01T09:00:00.000',
+        dateTo: '2024-01-01T17:00:00.000',
+        locationId: 1,
+        bookingCategory: 123
+      };
+
+      const mockAvailabilityResponse: IAvailabilityResponse = {
+        available: true,
+        slots: [],
+        location: { id: 1, name: 'Test Location' }
+      };
+
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(mockAvailabilityResponse), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' }
+      }));
+
+      await client.checkAvailability(mockAvailabilityRequest, mockCredentials);
+
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/availability?' +
+        'l=1&' +
+        'f=2024-01-01T09%3A00%3A00.000&' +
+        't=2024-01-01T17%3A00%3A00.000&' +
+        'include=locations&include=facilities&include=layouts&include=bookingSettings&include=timeslots&' +
+        'bc=123';
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expectedUrl,
+        expect.objectContaining({
+          method: 'GET'
+        })
+      );
     });
   });
 
@@ -128,7 +170,16 @@ describe('MatrixAPIClient', () => {
         locationId: 1,
         attendees: [],
         extraRequests: [],
-        bookingGroup: { repeatEndDate: '2024-01-01' },
+        bookingGroup: {
+          id: 1,
+          type: 'REPEAT',
+          repeatKind: 'WORK_DAILY',
+          repeatStartDate: '2023-12-01T00:00:00.000',
+          repeatEndDate: '2024-01-01',
+          repeatText: 'Repeats every weekday until Jan 1, 2024',
+          status: 'BOOKED',
+          firstBookingStatus: 'CONFIRMED'
+        },
         owner: { id: 1, email: 'test@example.com', name: 'Test User' },
         ownerIsAttendee: true,
         source: 'WEB'

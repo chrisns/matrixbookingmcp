@@ -333,13 +333,6 @@ describe('API Types', () => {
           };
         }
 
-        async getAvailability(_credentials: ICredentials): Promise<IAvailabilityResponse> {
-          return {
-            available: true,
-            slots: [],
-            location: { id: 1, name: 'Test Location', kind: 'ROOM' }
-          };
-        }
 
         async getLocationHierarchy(_request: ILocationQueryRequest, _credentials: ICredentials): Promise<ILocationHierarchyResponse> {
           return {
@@ -516,13 +509,6 @@ describe('API Types', () => {
           };
         }
 
-        async getAvailability(_credentials: ICredentials): Promise<IAvailabilityResponse> {
-          return {
-            available: true,
-            slots: [],
-            location: { id: 1, name: 'Test Location', kind: 'ROOM' }
-          };
-        }
 
         async getLocationHierarchy(_request: ILocationQueryRequest, _credentials: ICredentials): Promise<ILocationHierarchyResponse> {
           return {
@@ -666,13 +652,6 @@ describe('API Types', () => {
           };
         }
 
-        async getAvailability(_credentials: ICredentials): Promise<IAvailabilityResponse> {
-          return {
-            available: true,
-            slots: [],
-            location: { id: 1, name: 'Test Location', kind: 'ROOM' }
-          };
-        }
 
         async getLocationHierarchy(_request: ILocationQueryRequest, _credentials: ICredentials): Promise<ILocationHierarchyResponse> {
           return {
@@ -710,7 +689,8 @@ describe('API Types', () => {
       // Test authentication error
       await expect(client.checkAvailability({
         dateFrom: '2024-01-01T09:00:00Z',
-        dateTo: '2024-01-01T17:00:00Z'
+        dateTo: '2024-01-01T17:00:00Z',
+        locationId: 1
       }, invalidCredentials)).rejects.toThrow('Authentication failed');
 
       // Test location not found error

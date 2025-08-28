@@ -284,7 +284,16 @@ describe('Memory Usage Performance Testing', () => {
         locationId: 1,
         attendees: [],
         extraRequests: [],
-        bookingGroup: { repeatEndDate: '2024-01-01' },
+        bookingGroup: {
+          id: 1,
+          type: 'REPEAT',
+          repeatKind: 'WORK_DAILY',
+          repeatStartDate: '2023-12-01T00:00:00.000',
+          repeatEndDate: '2024-01-01',
+          repeatText: 'Repeats every weekday until Jan 1, 2024',
+          status: 'BOOKED',
+          firstBookingStatus: 'CONFIRMED'
+        },
         owner: { id: 1, email: 'test@example.com', name: 'Test User' },
         ownerIsAttendee: true,
         source: 'WEB'

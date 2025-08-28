@@ -6,17 +6,10 @@
 import { ILocation } from './location.types.js';
 
 export interface IAvailabilityRequest {
-  dateFrom: string;  // ISO 8601 format
-  dateTo: string;    // ISO 8601 format
-  locationId?: number;
-  duration?: number; // minutes
-  // Enhanced parameters for undocumented API
-  bc?: number;       // booking category ID
-  f?: string;        // from datetime (ISO format) - alias for dateFrom
-  t?: string;        // to datetime (ISO format) - alias for dateTo
-  l?: number;        // location ID - alias for locationId
-  status?: 'available' | 'unavailable' | 'booked' | string[];
-  include?: ('locations' | 'facilities' | 'ancestors' | 'layouts' | 'bookingSettings')[];
+  dateFrom: string;    // Format: 2025-08-27T00:00
+  dateTo: string;      // Format: 2025-08-27T23:59
+  locationId: number;  // Required, will use 'l' query parameter
+  bookingCategory?: number;  // Optional 'bc' parameter
 }
 
 export interface IAvailabilityResponse {

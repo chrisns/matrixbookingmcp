@@ -16,7 +16,14 @@ export interface IOwner {
 }
 
 export interface IBookingGroup {
-  repeatEndDate: string; // YYYY-MM-DD format
+  id: number;
+  type: string; // e.g., "REPEAT"
+  repeatKind: string; // e.g., "WORK_DAILY"
+  repeatStartDate: string; // ISO 8601 format
+  repeatEndDate: string; // ISO 8601 format
+  repeatText: string; // Human-readable description like "Repeats every week day until Tue, 16 Sep 2025"
+  status: string; // e.g., "BOOKED"
+  firstBookingStatus: string; // e.g., "CONFIRMED"
 }
 
 export interface IBookingRequest {

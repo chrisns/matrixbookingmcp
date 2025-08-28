@@ -74,7 +74,6 @@ describe('BookingService - Location Resolution', () => {
       getCurrentUser: vi.fn(),
       getUserBookings: vi.fn(),
       getAllBookings: vi.fn(),
-      getAvailability: vi.fn(),
       getLocationHierarchy: vi.fn(),
       getOrganization: vi.fn()
     };

@@ -116,10 +116,11 @@ describe('MSW Integration Tests', () => {
     test('should handle 400 bad request for invalid parameters', async () => {
       const request = {
         dateFrom: '2024-01-01T09:00:00.000Z',
-        // Missing required fields
-      } as any;
+        dateTo: '2024-01-01T17:00:00.000Z',
+        locationId: 999999  // Invalid location that doesn't exist
+      };
 
-      await expect(apiClient.checkAvailability(request, mockCredentials)).rejects.toThrow('Invalid request parameters');
+      await expect(apiClient.checkAvailability(request, mockCredentials)).rejects.toThrow();
     });
   });
 

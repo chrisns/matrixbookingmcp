@@ -75,7 +75,7 @@ describe('Availability Endpoint Verification', () => {
   });
 
   describe('Task 10: Availability Check API Endpoint Issues', () => {
-    it('should use POST method for availability endpoint (current implementation)', async () => {
+    it('should use GET method for availability endpoint (updated implementation)', async () => {
       const mockAvailabilityRequest: IAvailabilityRequest = {
         dateFrom: '2024-01-01T09:00:00.000Z',
         dateTo: '2024-01-01T17:00:00.000Z',
@@ -96,11 +96,14 @@ describe('Availability Endpoint Verification', () => {
 
       await client.checkAvailability(mockAvailabilityRequest, mockCredentials);
 
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/availability?' +
+        'l=1&f=2024-01-01T09%3A00%3A00.000Z&t=2024-01-01T17%3A00%3A00.000Z&' +
+        'include=locations&include=facilities&include=layouts&include=bookingSettings&include=timeslots';
+      
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://app.matrixbooking.com/api/v1/availability',
+        expectedUrl,
         expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify(mockAvailabilityRequest)
+          method: 'GET'
         })
       );
     });
@@ -143,18 +146,18 @@ describe('Availability Endpoint Verification', () => {
     });
 
     it('should successfully handle various availability request parameters', async () => {
-      const testCases = [
+      const testCases: Array<{ name: string; request: IAvailabilityRequest }> = [
         {
-          name: 'with duration parameter',
+          name: 'with booking category parameter',
           request: {
             dateFrom: '2024-01-01T09:00:00.000Z',
             dateTo: '2024-01-01T17:00:00.000Z',
             locationId: 1,
-            duration: 60
+            bookingCategory: 60
           }
         },
         {
-          name: 'minimal request without duration',
+          name: 'minimal request without booking category',
           request: {
             dateFrom: '2024-01-01T09:00:00.000Z',
             dateTo: '2024-01-01T17:00:00.000Z',
@@ -184,11 +187,17 @@ describe('Availability Endpoint Verification', () => {
 
         await client.checkAvailability(testCase.request, mockCredentials);
 
+        const expectedUrl = 'https://app.matrixbooking.com/api/v1/availability?' +
+          `l=${testCase.request.locationId}&` +
+          `f=${encodeURIComponent(testCase.request.dateFrom)}&` +
+          `t=${encodeURIComponent(testCase.request.dateTo)}&` +
+          'include=locations&include=facilities&include=layouts&include=bookingSettings&include=timeslots' +
+          (testCase.request.bookingCategory ? `&bc=${testCase.request.bookingCategory}` : '');
+        
         expect(mockFetch).toHaveBeenLastCalledWith(
-          'https://app.matrixbooking.com/api/v1/availability',
+          expectedUrl,
           expect.objectContaining({
-            method: 'POST',
-            body: JSON.stringify(testCase.request)
+            method: 'GET'
           })
         );
       }
@@ -213,8 +222,12 @@ describe('Availability Endpoint Verification', () => {
 
       await client.checkAvailability(mockAvailabilityRequest, mockCredentials);
 
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/availability?' +
+        'l=1&f=2024-01-01T09%3A00%3A00.000Z&t=2024-01-01T17%3A00%3A00.000Z&' +
+        'include=locations&include=facilities&include=layouts&include=bookingSettings&include=timeslots';
+      
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://app.matrixbooking.com/api/v1/availability',
+        expectedUrl,
         expect.objectContaining({
           headers: {
             'Authorization': `Basic ${mockCredentials.encodedCredentials}`,
@@ -245,13 +258,14 @@ describe('Availability Endpoint Verification', () => {
 
       await client.checkAvailability(mockAvailabilityRequest, mockCredentials);
 
-      // Verify the exact endpoint URL matches expected pattern
-      const expectedUrl = `${mockConfig.apiBaseUrl}/availability`;
+      // Verify the exact endpoint URL includes query parameters  
+      const expectedBaseUrl = `${mockConfig.apiBaseUrl}/availability`;
+      const expectedUrl = expectedBaseUrl + '?l=1&f=2024-01-01T09%3A00%3A00.000Z&t=2024-01-01T17%3A00%3A00.000Z&include=locations&include=facilities&include=layouts&include=bookingSettings&include=timeslots';
       expect(mockFetch).toHaveBeenCalledWith(
         expectedUrl,
         expect.any(Object)
       );
-      expect(expectedUrl).toBe('https://app.matrixbooking.com/api/v1/availability');
+      expect(expectedBaseUrl).toBe('https://app.matrixbooking.com/api/v1/availability');
     });
 
     it('should handle timeout errors appropriately', async () => {

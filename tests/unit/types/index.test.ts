@@ -24,7 +24,8 @@ describe('Types Index', () => {
       // Type-level checks - if these compile, the exports are working
       const _availabilityRequest: Types.IAvailabilityRequest = {
         dateFrom: '2024-01-01T09:00:00Z',
-        dateTo: '2024-01-01T17:00:00Z'
+        dateTo: '2024-01-01T17:00:00Z',
+        locationId: 1
       };
 
       const _timeSlot: Types.ITimeSlot = {

@@ -14,33 +14,34 @@ describe('Availability Types', () => {
         dateFrom: '2024-01-01T09:00:00Z',
         dateTo: '2024-01-01T17:00:00Z',
         locationId: 123,
-        duration: 60
+        bookingCategory: 60
       };
 
       expect(request).toHaveProperty('dateFrom');
       expect(request).toHaveProperty('dateTo');
       expect(request).toHaveProperty('locationId');
-      expect(request).toHaveProperty('duration');
+      expect(request).toHaveProperty('bookingCategory');
       expect(typeof request.dateFrom).toBe('string');
       expect(typeof request.dateTo).toBe('string');
       expect(typeof request.locationId).toBe('number');
-      expect(typeof request.duration).toBe('number');
+      expect(typeof request.bookingCategory).toBe('number');
     });
 
     it('should handle optional properties', () => {
       const minimalRequest: IAvailabilityRequest = {
         dateFrom: '2024-01-01T09:00:00Z',
-        dateTo: '2024-01-01T17:00:00Z'
+        dateTo: '2024-01-01T17:00:00Z',
+        locationId: 123
       };
 
-      expect(minimalRequest.locationId).toBeUndefined();
-      expect(minimalRequest.duration).toBeUndefined();
+      expect(minimalRequest.bookingCategory).toBeUndefined();
     });
 
     it('should enforce ISO 8601 date format expectation', () => {
       const request: IAvailabilityRequest = {
         dateFrom: '2024-01-01T09:00:00.000Z',
-        dateTo: '2024-01-01T17:00:00+00:00'
+        dateTo: '2024-01-01T17:00:00+00:00',
+        locationId: 123
       };
 
       expect(request.dateFrom).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
@@ -196,8 +197,8 @@ describe('Availability Types', () => {
           return {
             dateFrom: request.dateFrom || new Date().toISOString(),
             dateTo: request.dateTo || new Date(Date.now() + 3600000).toISOString(),
-            ...(request.locationId !== undefined && { locationId: request.locationId }),
-            ...(request.duration !== undefined && { duration: request.duration })
+            locationId: request.locationId || 1,
+            ...(request.bookingCategory !== undefined && { bookingCategory: request.bookingCategory })
           };
         }
       }
@@ -209,7 +210,8 @@ describe('Availability Types', () => {
 
       const request: IAvailabilityRequest = {
         dateFrom: '2024-01-01T09:00:00Z',
-        dateTo: '2024-01-01T10:00:00Z'
+        dateTo: '2024-01-01T10:00:00Z',
+        locationId: 1
       };
 
       const response = await service.checkAvailability(request);
@@ -232,7 +234,7 @@ describe('Availability Types', () => {
             dateFrom: request.dateFrom || now.toISOString(),
             dateTo: request.dateTo || later.toISOString(),
             locationId: request.locationId || 1,
-            duration: request.duration || 60
+            bookingCategory: request.bookingCategory || 60
           };
         }
       }
@@ -247,7 +249,7 @@ describe('Availability Types', () => {
       expect(formatted).toHaveProperty('dateFrom');
       expect(formatted).toHaveProperty('dateTo');
       expect(formatted.locationId).toBe(123);
-      expect(formatted.duration).toBe(60);
+      expect(formatted.bookingCategory).toBe(60);
       expect(typeof formatted.dateFrom).toBe('string');
       expect(typeof formatted.dateTo).toBe('string');
     });

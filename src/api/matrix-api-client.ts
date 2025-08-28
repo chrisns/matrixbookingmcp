@@ -25,11 +25,35 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     const config = this.configManager.getConfig();
     const headers = this.authManager.createAuthHeader(credentials);
     
+    const params = new URLSearchParams();
+    
+    // Required parameters - validate locationId exists
+    if (!request.locationId) {
+      throw new Error('locationId is required for availability check');
+    }
+    
+    params.append('l', request.locationId.toString());
+    params.append('f', request.dateFrom);
+    params.append('t', request.dateTo);
+    
+    // Always include these for comprehensive data
+    params.append('include', 'locations');
+    params.append('include', 'facilities');
+    params.append('include', 'layouts');
+    params.append('include', 'bookingSettings');
+    params.append('include', 'timeslots');
+    
+    // Optional parameters
+    if (request.bookingCategory) {
+      params.append('bc', request.bookingCategory.toString());
+    }
+    
+    const url = `${config.apiBaseUrl}/availability?${params.toString()}`;
+    
     const apiRequest: IAPIRequest = {
-      method: 'POST',
-      url: `${config.apiBaseUrl}/availability`,
-      headers,
-      body: request
+      method: 'GET',
+      url,
+      headers
     };
 
     const response = await this.makeRequest<IAvailabilityResponse>(apiRequest);
@@ -90,6 +114,15 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     if (request.page) queryParams.append('page', request.page.toString());
     if (request.pageSize) queryParams.append('pageSize', request.pageSize.toString());
     
+    // Add include parameters to get comprehensive booking data including recurring booking information
+    queryParams.append('include', 'locations');
+    queryParams.append('include', 'visit');
+    queryParams.append('include', 'facilities');
+    queryParams.append('include', 'extras');
+    queryParams.append('include', 'bookingSettings');
+    queryParams.append('include', 'layouts');
+    queryParams.append('include', 'ancestors');
+    
     const queryString = queryParams.toString();
     const url = queryString ? 
       `${config.apiBaseUrl}/user/current/bookings?${queryString}` : 
@@ -119,19 +152,6 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     return response.data;
   }
 
-  async getAvailability(credentials: ICredentials): Promise<IAvailabilityResponse> {
-    const config = this.configManager.getConfig();
-    const headers = this.authManager.createAuthHeader(credentials);
-    
-    const apiRequest: IAPIRequest = {
-      method: 'GET',
-      url: `${config.apiBaseUrl}/availability`,
-      headers
-    };
-
-    const response = await this.makeRequest<IAvailabilityResponse>(apiRequest);
-    return response.data;
-  }
 
   async getLocationHierarchy(request: ILocationQueryRequest, credentials: ICredentials): Promise<ILocationHierarchyResponse> {
     const config = this.configManager.getConfig();

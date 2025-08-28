@@ -72,14 +72,16 @@ export const matrixApiHandlers = [
   }),
 
   /**
-   * POST /availability - Check availability
+   * GET /availability - Check availability
    */
-  http.post(`${MATRIX_API_BASE}/availability`, async ({ request }) => {
+  http.get(`${MATRIX_API_BASE}/availability`, async ({ request }) => {
     await delay(150);
 
     try {
-      const body = await request.json() as any;
-      const { dateFrom, dateTo, locationId } = body;
+      const url = new URL(request.url);
+      const locationId = parseInt(url.searchParams.get('l') || '0', 10);
+      const dateFrom = url.searchParams.get('f');
+      const dateTo = url.searchParams.get('t');
 
       // Validate required parameters
       if (!dateFrom || !dateTo || !locationId) {
