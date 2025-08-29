@@ -3,7 +3,7 @@ import { MatrixAPIClient } from '../../../src/api/matrix-api-client.js';
 import { IAuthenticationManager, ICredentials } from '../../../src/types/authentication.types.js';
 import { IConfigurationManager, IServerConfig } from '../../../src/config/config-manager.js';
 import { IAvailabilityRequest, IAvailabilityResponse } from '../../../src/types/availability.types.js';
-import { IBookingRequest } from '../../../src/types/booking.types.js';
+import { IBookingRequest, ICancelBookingRequest, ICancelBookingResponse } from '../../../src/types/booking.types.js';
 import { ILocation } from '../../../src/types/location.types.js';
 import { IAPIRequest } from '../../../src/types/api.types.js';
 import { IErrorHandler } from '../../../src/types/error.types.js';
@@ -242,6 +242,269 @@ describe('MatrixAPIClient', () => {
       );
 
       expect(result).toEqual(mockBookingResponse);
+    });
+  });
+
+  describe('cancelBooking', () => {
+    it('should make a DELETE request to booking endpoint with default parameters', async () => {
+      const mockCancelRequest: ICancelBookingRequest = {
+        bookingId: 123
+      };
+
+      const mockCancelResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 123,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-01T12:00:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES'
+      };
+
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(mockCancelResponse), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' }
+      }));
+
+      const result = await client.cancelBooking(mockCancelRequest, mockCredentials);
+
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/booking/123?notifyScope=ALL_ATTENDEES&sendNotifications=true';
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expectedUrl,
+        expect.objectContaining({
+          method: 'DELETE',
+          headers: expect.objectContaining({
+            'Authorization': `Basic ${encodedCredentials}`,
+            'Content-Type': 'application/json;charset=UTF-8',
+            'x-matrix-source': 'WEB',
+            'x-time-zone': 'Europe/London'
+          })
+        })
+      );
+
+      expect(result).toEqual(mockCancelResponse);
+    });
+
+    it('should include all parameters when provided', async () => {
+      const mockCancelRequest: ICancelBookingRequest = {
+        bookingId: '456',
+        notifyScope: 'OWNER_ONLY',
+        sendNotifications: false,
+        reason: 'Meeting cancelled due to schedule conflict'
+      };
+
+      const mockCancelResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 456,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-01T12:00:00.000Z',
+        notificationsSent: false,
+        notifyScope: 'OWNER_ONLY',
+        reason: 'Meeting cancelled due to schedule conflict',
+        originalBooking: {
+          locationId: 1,
+          locationName: 'Meeting Room A',
+          timeFrom: '2024-01-01T09:00:00.000Z',
+          timeTo: '2024-01-01T17:00:00.000Z',
+          attendeeCount: 5,
+          owner: 'John Doe'
+        }
+      };
+
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(mockCancelResponse), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' }
+      }));
+
+      const result = await client.cancelBooking(mockCancelRequest, mockCredentials);
+
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/booking/456?notifyScope=OWNER_ONLY&sendNotifications=false&reason=Meeting+cancelled+due+to+schedule+conflict';
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expectedUrl,
+        expect.objectContaining({
+          method: 'DELETE',
+          headers: expect.objectContaining({
+            'Authorization': `Basic ${encodedCredentials}`,
+            'Content-Type': 'application/json;charset=UTF-8',
+            'x-matrix-source': 'WEB',
+            'x-time-zone': 'Europe/London'
+          })
+        })
+      );
+
+      expect(result).toEqual(mockCancelResponse);
+    });
+
+    it('should handle NONE notify scope', async () => {
+      const mockCancelRequest: ICancelBookingRequest = {
+        bookingId: 789,
+        notifyScope: 'NONE',
+        sendNotifications: true
+      };
+
+      const mockCancelResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 789,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-01T12:00:00.000Z',
+        notificationsSent: false,
+        notifyScope: 'NONE'
+      };
+
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(mockCancelResponse), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' }
+      }));
+
+      await client.cancelBooking(mockCancelRequest, mockCredentials);
+
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/booking/789?notifyScope=NONE&sendNotifications=true';
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expectedUrl,
+        expect.objectContaining({
+          method: 'DELETE'
+        })
+      );
+    });
+
+    it('should handle string booking ID correctly', async () => {
+      const mockCancelRequest: ICancelBookingRequest = {
+        bookingId: '999',
+        reason: 'Emergency cancellation'
+      };
+
+      const mockCancelResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 999,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-01T12:00:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES',
+        reason: 'Emergency cancellation'
+      };
+
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(mockCancelResponse), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' }
+      }));
+
+      const result = await client.cancelBooking(mockCancelRequest, mockCredentials);
+
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/booking/999?notifyScope=ALL_ATTENDEES&sendNotifications=true&reason=Emergency+cancellation';
+
+      expect(mockFetch).toHaveBeenCalledWith(expectedUrl, expect.any(Object));
+      expect(result).toEqual(mockCancelResponse);
+    });
+
+    it('should handle numeric booking ID correctly', async () => {
+      const mockCancelRequest: ICancelBookingRequest = {
+        bookingId: 1001
+      };
+
+      const mockCancelResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 1001,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-01T12:00:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES'
+      };
+
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(mockCancelResponse), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' }
+      }));
+
+      await client.cancelBooking(mockCancelRequest, mockCredentials);
+
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/booking/1001?notifyScope=ALL_ATTENDEES&sendNotifications=true';
+
+      expect(mockFetch).toHaveBeenCalledWith(expectedUrl, expect.any(Object));
+    });
+
+    it('should handle API error responses through ErrorHandler', async () => {
+      const mockCancelRequest: ICancelBookingRequest = {
+        bookingId: 404
+      };
+
+      const errorResponse = {
+        error: {
+          code: 'BOOKING_NOT_FOUND',
+          message: 'Booking with ID 404 not found',
+          timestamp: '2024-01-01T12:00:00.000Z'
+        },
+        httpStatus: 404,
+        requestId: 'test-request-id'
+      };
+
+      mockErrorHandler.handleAPIError = vi.fn().mockReturnValue(errorResponse);
+
+      mockFetch.mockResolvedValueOnce(new Response('Not Found', {
+        status: 404,
+        statusText: 'Not Found'
+      }));
+
+      await expect(client.cancelBooking(mockCancelRequest, mockCredentials)).rejects.toThrow('Booking with ID 404 not found');
+      expect(mockErrorHandler.handleAPIError).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle network errors through ErrorHandler', async () => {
+      const mockCancelRequest: ICancelBookingRequest = {
+        bookingId: 123
+      };
+
+      const networkErrorResponse = {
+        error: {
+          code: 'NETWORK_ERROR',
+          message: 'Network connection failed',
+          timestamp: '2024-01-01T12:00:00.000Z'
+        },
+        httpStatus: 503,
+        requestId: 'test-request-id'
+      };
+
+      mockErrorHandler.handleNetworkError = vi.fn().mockReturnValue(networkErrorResponse);
+
+      const networkError = new Error('Network connection failed');
+      mockFetch.mockRejectedValueOnce(networkError);
+
+      await expect(client.cancelBooking(mockCancelRequest, mockCredentials)).rejects.toThrow('Network connection failed');
+      expect(mockErrorHandler.handleNetworkError).toHaveBeenCalledWith(networkError);
+    });
+
+    it('should default sendNotifications to true when not explicitly set to false', async () => {
+      const mockCancelRequest: ICancelBookingRequest = {
+        bookingId: 123
+        // sendNotifications omitted to test default behavior
+      };
+
+      const mockCancelResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 123,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-01T12:00:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES'
+      };
+
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(mockCancelResponse), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' }
+      }));
+
+      await client.cancelBooking(mockCancelRequest, mockCredentials);
+
+      const expectedUrl = 'https://app.matrixbooking.com/api/v1/booking/123?notifyScope=ALL_ATTENDEES&sendNotifications=true';
+
+      expect(mockFetch).toHaveBeenCalledWith(expectedUrl, expect.any(Object));
     });
   });
 

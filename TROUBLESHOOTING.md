@@ -315,7 +315,7 @@ curl -w "Total time: %{time_total}s\n" \
 1. **Check stdout/stderr handling:**
    ```bash
    # MCP uses stdio for communication
-   # Ensure no console.log in production code
+   # Ensure no console.error in production code
    LOG_LEVEL=warn  # Minimize console output
    ```
 
@@ -379,14 +379,14 @@ DEBUG=matrix-booking:error LOG_LEVEL=warn npm start
 node -e "
 const server = require('./dist/mcp/mcp-server.js');
 const mcpServer = new server.MatrixBookingMCPServer();
-mcpServer.handleHealthCheck({verbose: true}).then(console.log);
+mcpServer.handleHealthCheck({verbose: true}).then(console.error);
 "
 
 # Test individual services
 node -e "
 const userService = require('./dist/services/user-service.js');
 const service = new userService.UserService(/* auth manager */);
-service.getCurrentUser().then(console.log).catch(console.error);
+service.getCurrentUser().then(console.error).catch(console.error);
 "
 ```
 
@@ -402,7 +402,7 @@ const config = {
   password: process.env.MATRIX_PASSWORD, 
   apiUrl: process.env.MATRIX_API_BASE_URL
 };
-console.log('Config validation:', {
+console.error('Config validation:', {
   hasUsername: !!config.username,
   isValidEmail: /@/.test(config.username || ''),
   hasPassword: !!config.password,

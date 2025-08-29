@@ -66,6 +66,22 @@ vi.mock('../../src/services/booking-service.js', () => ({
       ownerIsAttendee: true,
       source: 'matrix-booking-mcp',
       attendees: []
+    }),
+    cancelBooking: vi.fn().mockResolvedValue({
+      success: true,
+      bookingId: 123,
+      status: 'CANCELLED',
+      cancellationTime: '2024-01-15T10:30:00.000Z',
+      notificationsSent: true,
+      notifyScope: 'ALL_ATTENDEES',
+      reason: 'Integration test cancellation',
+      originalBooking: {
+        locationId: 1,
+        timeFrom: '2024-01-15T09:00:00.000Z',
+        timeTo: '2024-01-15T10:00:00.000Z',
+        attendeeCount: 2,
+        owner: 'Test User'
+      }
     })
   }))
 }));
@@ -131,6 +147,31 @@ describe('MCP Server Integration Tests', () => {
       // Simulate location tool call request (structure for reference)
 
       expect(server).toBeDefined();
+    });
+
+    it('should handle cancel booking requests', async () => {
+      const server = mcpServer.getServer();
+      
+      // Test that cancel booking tool is properly registered and configured
+      // The actual tool handling is tested in unit tests
+      
+      expect(server).toBeDefined();
+      
+      // Verify the cancel booking integration works as expected
+      const handleCancelBooking = (mcpServer as any).handleCancelBooking;
+      const result = await handleCancelBooking.call(mcpServer, {
+        bookingId: 123,
+        notifyScope: 'ALL_ATTENDEES',
+        sendNotifications: true,
+        reason: 'Integration test cancellation'
+      });
+
+      expect(result).toBeDefined();
+      expect(result.isError).toBeUndefined();
+      expect(result.content).toBeDefined();
+      expect(result.content[0].text).toContain('CANCELLED');
+      expect(result.content[0].text).toContain('123');
+      expect(result.content[0].text).toContain('Integration test cancellation');
     });
   });
 

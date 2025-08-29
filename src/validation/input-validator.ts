@@ -2,7 +2,9 @@ import {
   IInputValidator,
   IValidationResult,
   IDateValidationOptions,
-  ILocationValidationOptions
+  ILocationValidationOptions,
+  IBookingIdValidationOptions,
+  IBookingIdValidation
 } from '../types/validation.types.js';
 
 export class InputValidator implements IInputValidator {
@@ -147,6 +149,84 @@ export class InputValidator implements IInputValidator {
       isValid: errors.length === 0,
       errors,
       sanitizedValue: trimmedEmail.toLowerCase()
+    };
+  }
+
+  validateBookingId(bookingId: string | number, options?: IBookingIdValidationOptions): IBookingIdValidation {
+    const errors: string[] = [];
+    
+    // Check for null, undefined, or empty string
+    if (bookingId === null || bookingId === undefined || bookingId === '') {
+      errors.push('Booking ID is required');
+      return { isValid: false, errors };
+    }
+    
+    let numericValue: number;
+    
+    // Handle string input
+    if (typeof bookingId === 'string') {
+      // Check if string format is allowed (defaults to true for Matrix API compatibility)
+      const allowStringFormat = options?.allowStringFormat ?? true;
+      if (!allowStringFormat) {
+        errors.push('String format not allowed for booking ID');
+        return { isValid: false, errors };
+      }
+      
+      // Trim whitespace and check if empty after trimming
+      const trimmedBookingId = bookingId.trim();
+      if (trimmedBookingId === '') {
+        errors.push('Booking ID cannot be empty');
+        return { isValid: false, errors };
+      }
+      
+      // Parse string to number
+      numericValue = parseInt(trimmedBookingId, 10);
+      
+      // Check if parsing was successful
+      if (isNaN(numericValue)) {
+        errors.push('Booking ID must be a valid number');
+        return { isValid: false, errors };
+      }
+      
+      // Check if the original string represents a valid integer (allows leading zeros and negative signs)
+      if (!/^-?\d+$/.test(trimmedBookingId)) {
+        errors.push('Booking ID must be a valid number');
+        return { isValid: false, errors };
+      }
+    } else if (typeof bookingId === 'number') {
+      // Handle numeric input
+      if (isNaN(bookingId)) {
+        errors.push('Booking ID must be a valid number');
+        return { isValid: false, errors };
+      }
+      
+      numericValue = bookingId;
+    } else {
+      errors.push('Booking ID must be a string or number');
+      return { isValid: false, errors };
+    }
+    
+    // Validate that it's an integer (no decimals)
+    if (!Number.isInteger(numericValue)) {
+      errors.push('Booking ID must be an integer');
+    }
+    
+    // Check if positive number is required (defaults to true)
+    const requirePositiveNumber = options?.requirePositiveNumber ?? true;
+    if (requirePositiveNumber && numericValue <= 0) {
+      errors.push('Booking ID must be positive');
+    } else if (!requirePositiveNumber && numericValue < 0) {
+      errors.push('Booking ID cannot be negative');
+    }
+    
+    // Check minimum value if specified
+    if (options?.minValue !== undefined && numericValue < options.minValue) {
+      errors.push(`Booking ID must be at least ${options.minValue}`);
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
     };
   }
 

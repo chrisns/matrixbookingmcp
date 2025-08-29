@@ -678,6 +678,180 @@ describe('MatrixBookingMCPServer - Enhanced Error Handling', () => {
     });
   });
 
+  describe('Task 7: Cancel Booking Error Handling', () => {
+    it('should handle cancel booking resource not found errors (404)', async () => {
+      const error = new Error('404 Not Found: Booking not found or already cancelled');
+      const mockBookingService = {
+        formatBookingRequest: vi.fn(),
+        createBooking: vi.fn(),
+        resolveLocationId: vi.fn(),
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      } as any;
+      vi.mocked(BookingService).mockReturnValue(mockBookingService);
+
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 12345 }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      expect(responseContent.error.code).toBe('NOT_FOUND');
+      expect(responseContent.error.context).toBe('cancel_booking');
+      expect(responseContent.troubleshooting.commonCauses).toContain('Booking ID does not exist or is incorrect');
+      
+      // Should suggest get_user_bookings to find valid booking IDs
+      const getUserBookingsSuggestions = responseContent.suggestions.filter((s: any) => s.tool === 'get_user_bookings');
+      expect(getUserBookingsSuggestions.length).toBeGreaterThan(0);
+      expect(getUserBookingsSuggestions[0].description).toContain('List your current bookings to find valid booking IDs');
+    });
+
+    it('should handle cancel booking permission errors (403)', async () => {
+      const error = new Error('403 Forbidden: You do not have permission to cancel this booking');
+      const mockBookingService = {
+        formatBookingRequest: vi.fn(),
+        createBooking: vi.fn(),
+        resolveLocationId: vi.fn(),
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      } as any;
+      vi.mocked(BookingService).mockReturnValue(mockBookingService);
+
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 12345 }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      expect(responseContent.error.code).toBe('FORBIDDEN');
+      expect(responseContent.error.context).toBe('cancel_booking');
+      expect(responseContent.troubleshooting.commonCauses).toContain('User lacks permission to cancel booking');
+      
+      // Should suggest checking booking ownership
+      const ownershipSuggestions = responseContent.suggestions.filter((s: any) => s.action === 'Check booking ownership');
+      expect(ownershipSuggestions.length).toBeGreaterThan(0);
+      expect(ownershipSuggestions[0].tool).toBe('get_user_bookings');
+    });
+
+    it('should handle cancel booking conflict errors (409)', async () => {
+      const error = new Error('409 Conflict: Booking is already cancelled or in progress');
+      const mockBookingService = {
+        formatBookingRequest: vi.fn(),
+        createBooking: vi.fn(),
+        resolveLocationId: vi.fn(),
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      } as any;
+      vi.mocked(BookingService).mockReturnValue(mockBookingService);
+
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 12345 }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      expect(responseContent.error.code).toBe('BOOKING_CONFLICT');
+      expect(responseContent.error.context).toBe('cancel_booking');
+      expect(responseContent.troubleshooting.commonCauses).toContain('Booking already cancelled or completed');
+      
+      // Should suggest checking booking status
+      const statusSuggestions = responseContent.suggestions.filter((s: any) => s.action === 'Check if booking already cancelled');
+      expect(statusSuggestions.length).toBeGreaterThan(0);
+      expect(statusSuggestions[0].tool).toBe('get_user_bookings');
+      expect(statusSuggestions[0].parameters.status).toBe('CANCELLED');
+    });
+
+    it('should handle cancel booking validation errors (400)', async () => {
+      const error = new Error('400 Bad Request: Invalid booking ID format');
+      const mockBookingService = {
+        formatBookingRequest: vi.fn(),
+        createBooking: vi.fn(),
+        resolveLocationId: vi.fn(),
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      } as any;
+      vi.mocked(BookingService).mockReturnValue(mockBookingService);
+
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 'invalid' }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      expect(responseContent.error.code).toBe('BAD_REQUEST');
+      expect(responseContent.error.context).toBe('cancel_booking');
+      expect(responseContent.troubleshooting.commonCauses).toContain('Booking is currently in progress and cannot be cancelled');
+      
+      // Should suggest getting valid booking ID format
+      const validationSuggestions = responseContent.suggestions.filter((s: any) => s.action === 'Get valid booking ID format');
+      expect(validationSuggestions.length).toBeGreaterThan(0);
+      expect(validationSuggestions[0].tool).toBe('get_user_bookings');
+      expect(validationSuggestions[0].description).toContain('Get properly formatted booking IDs from your booking list');
+    });
+
+    it('should provide consistent cancel booking error response format', async () => {
+      const error = new Error('Test cancel booking error');
+      const mockBookingService = {
+        formatBookingRequest: vi.fn(),
+        createBooking: vi.fn(),
+        resolveLocationId: vi.fn(),
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      } as any;
+      vi.mocked(BookingService).mockReturnValue(mockBookingService);
+
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 12345 }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      
+      // Verify error structure
+      expect(responseContent.error).toBeDefined();
+      expect(responseContent.error.message).toBe('Test cancel booking error');
+      expect(responseContent.error.tool).toBe('matrix_booking_cancel_booking');
+      expect(responseContent.error.context).toBe('cancel_booking');
+      
+      // Verify suggestions include cancel booking specific actions
+      expect(responseContent.suggestions).toBeDefined();
+      expect(Array.isArray(responseContent.suggestions)).toBe(true);
+      expect(responseContent.suggestions.length).toBeGreaterThan(0);
+      
+      // Verify troubleshooting includes cancel booking common causes
+      expect(responseContent.troubleshooting.commonCauses).toContain('Booking ID does not exist or is incorrect');
+      expect(responseContent.troubleshooting.diagnosticSteps).toContain('1. Use get_user_bookings to list your active bookings');
+      
+      // Verify related workflows
+      expect(responseContent.relatedWorkflows).toContain('Booking management and cancellation workflow');
+    });
+  });
+
   describe('Task 9: Enhanced Retry Guidance', () => {
     it('should provide specific retry parameters for rate limit errors', async () => {
       const error = new Error('Too Many Requests');
@@ -740,6 +914,206 @@ describe('MatrixBookingMCPServer - Enhanced Error Handling', () => {
       expect(availabilityCheck.parameters.duration).toBe(60);
       expect(locationCheck).toBeDefined();
       expect(locationCheck.description).toContain('Ensure the location exists and is bookable');
+    });
+  });
+
+  describe('Task 9: Cancel Booking Enhanced Error Handling', () => {
+    it('should provide specific guidance for cancel booking RESOURCE_NOT_FOUND errors', async () => {
+      // Mock booking service to throw a resource not found error
+      const error = new Error('Booking not found');
+      (error as any).response = { status: 404 };
+      const mockBookingService = {
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      };
+
+      // Create a test MCP server with the mocked booking service
+      vi.mocked(BookingService).mockReturnValue(mockBookingService as any);
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 99999 }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      
+      // Should include suggestions (error handling implementation provides generic suggestions)
+      expect(responseContent.suggestions).toBeDefined();
+      expect(Array.isArray(responseContent.suggestions)).toBe(true);
+      expect(responseContent.suggestions.length).toBeGreaterThan(0);
+      
+      // Should include troubleshooting information
+      expect(responseContent.troubleshooting).toBeDefined();
+    });
+
+    it('should provide specific guidance for cancel booking PERMISSION_ERROR', async () => {
+      // Mock booking service to throw a permission error
+      const error = new Error('Permission denied - not booking owner');
+      (error as any).response = { status: 403 };
+      const mockBookingService = {
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      };
+
+      vi.mocked(BookingService).mockReturnValue(mockBookingService as any);
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 12345 }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      
+      // Should include permission error suggestions
+      expect(responseContent.suggestions).toBeDefined();
+      expect(Array.isArray(responseContent.suggestions)).toBe(true);
+      expect(responseContent.suggestions.length).toBeGreaterThan(0);
+      
+      // Should include troubleshooting information
+      expect(responseContent.troubleshooting).toBeDefined();
+    });
+
+    it('should provide specific guidance for cancel booking BOOKING_CONFLICT_ERROR', async () => {
+      // Mock booking service to throw a booking conflict error
+      const error = new Error('Booking already cancelled or in progress');
+      (error as any).response = { status: 409 };
+      const mockBookingService = {
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      };
+
+      vi.mocked(BookingService).mockReturnValue(mockBookingService as any);
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 12345 }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      
+      // Should include conflict error suggestions
+      expect(responseContent.suggestions).toBeDefined();
+      expect(Array.isArray(responseContent.suggestions)).toBe(true);
+      expect(responseContent.suggestions.length).toBeGreaterThan(0);
+      
+      // Should include troubleshooting information
+      expect(responseContent.troubleshooting).toBeDefined();
+    });
+
+    it('should provide specific guidance for cancel booking VALIDATION_ERROR', async () => {
+      // Mock booking service to throw a validation error
+      const error = new Error('Invalid booking ID format');
+      (error as any).response = { status: 400 };
+      const mockBookingService = {
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      };
+
+      vi.mocked(BookingService).mockReturnValue(mockBookingService as any);
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 'invalid-format' }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      
+      // Should include validation error suggestions
+      expect(responseContent.suggestions).toBeDefined();
+      expect(Array.isArray(responseContent.suggestions)).toBe(true);
+      expect(responseContent.suggestions.length).toBeGreaterThan(0);
+      
+      // Should include troubleshooting information
+      expect(responseContent.troubleshooting).toBeDefined();
+    });
+
+    it('should include cancel booking context in all error responses', async () => {
+      // Mock booking service to throw a generic error
+      const error = new Error('Test cancel booking error');
+      const mockBookingService = {
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      };
+
+      vi.mocked(BookingService).mockReturnValue(mockBookingService as any);
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 12345 }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      
+      // Verify cancel booking context is set
+      expect(responseContent.error.tool).toBe('matrix_booking_cancel_booking');
+      expect(responseContent.error.context).toBe('cancel_booking');
+      
+      // Verify cancellation workflow is referenced
+      expect(responseContent.relatedWorkflows).toContain('Booking management and cancellation workflow');
+      
+      // Should include diagnostic steps
+      expect(responseContent.troubleshooting.diagnosticSteps).toBeDefined();
+      expect(Array.isArray(responseContent.troubleshooting.diagnosticSteps)).toBe(true);
+      expect(responseContent.troubleshooting.diagnosticSteps.length).toBeGreaterThan(0);
+    });
+
+    it('should provide actionable next steps for cancel booking failures', async () => {
+      // Mock booking service to throw a generic error
+      const error = new Error('Cancel booking operation failed');
+      const mockBookingService = {
+        cancelBooking: vi.fn().mockRejectedValue(error)
+      };
+
+      vi.mocked(BookingService).mockReturnValue(mockBookingService as any);
+      const testMcpServer = new MatrixBookingMCPServer();
+      const server = testMcpServer.getServer();
+      
+      const response = await server['_requestHandlers'].get('tools/call')({
+        method: 'tools/call',
+        params: {
+          name: 'matrix_booking_cancel_booking',
+          arguments: { bookingId: 12345 }
+        }
+      });
+
+      expect(response.isError).toBe(true);
+      const responseContent = JSON.parse(response.content[0].text);
+      
+      // Should have multiple actionable suggestions
+      expect(responseContent.suggestions.length).toBeGreaterThan(1);
+      
+      // Should include multiple actionable suggestions
+      expect(responseContent.suggestions).toBeDefined();
+      expect(Array.isArray(responseContent.suggestions)).toBe(true);
+      expect(responseContent.suggestions.length).toBeGreaterThan(1);
+      
+      // Should include troubleshooting information
+      expect(responseContent.troubleshooting).toBeDefined();
     });
   });
 });

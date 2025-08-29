@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { InputValidator } from '../../../src/validation/input-validator.js';
-import { IDateValidationOptions, ILocationValidationOptions } from '../../../src/types/validation.types.js';
+import { IDateValidationOptions, ILocationValidationOptions, IBookingIdValidationOptions } from '../../../src/types/validation.types.js';
 
 describe('InputValidator', () => {
   let validator: InputValidator;
@@ -266,6 +266,255 @@ describe('InputValidator', () => {
     it('should remove quotes to prevent injection', () => {
       const result = validator.sanitizeString(`It's a "test" string`);
       expect(result).toBe('It&#x27;s a &quot;test&quot; string'); // Escapes quotes instead of removing
+    });
+  });
+
+  describe('validateBookingId', () => {
+    describe('valid booking IDs', () => {
+      it('should validate a numeric booking ID', () => {
+        const result = validator.validateBookingId(12345);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should validate a string booking ID by default', () => {
+        const result = validator.validateBookingId('12345');
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should validate string booking ID with allowStringFormat: true', () => {
+        const options: IBookingIdValidationOptions = { allowStringFormat: true };
+        const result = validator.validateBookingId('67890', options);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should trim whitespace from string booking IDs', () => {
+        const result = validator.validateBookingId('  12345  ');
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should validate large numeric booking ID', () => {
+        const result = validator.validateBookingId(999999999);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should validate booking ID equal to minimum value', () => {
+        const options: IBookingIdValidationOptions = { minValue: 100 };
+        const result = validator.validateBookingId(100, options);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should validate booking ID greater than minimum value', () => {
+        const options: IBookingIdValidationOptions = { minValue: 100 };
+        const result = validator.validateBookingId(150, options);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+    });
+
+    describe('invalid booking IDs - null/undefined/empty', () => {
+      it('should reject null booking ID', () => {
+        const result = validator.validateBookingId(null as any);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID is required');
+      });
+
+      it('should reject undefined booking ID', () => {
+        const result = validator.validateBookingId(undefined as any);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID is required');
+      });
+
+      it('should reject empty string booking ID', () => {
+        const result = validator.validateBookingId('');
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID is required');
+      });
+
+      it('should reject whitespace-only string booking ID', () => {
+        const result = validator.validateBookingId('   ');
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID cannot be empty');
+      });
+    });
+
+    describe('invalid booking IDs - format issues', () => {
+      it('should reject string format when allowStringFormat is false', () => {
+        const options: IBookingIdValidationOptions = { allowStringFormat: false };
+        const result = validator.validateBookingId('12345', options);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('String format not allowed for booking ID');
+      });
+
+      it('should reject non-numeric strings', () => {
+        const invalidStrings = ['abc', 'booking-123', 'test123', '123abc', 'xyz'];
+        invalidStrings.forEach(str => {
+          const result = validator.validateBookingId(str);
+          expect(result.isValid).toBe(false);
+          expect(result.errors).toContain('Booking ID must be a valid number');
+        });
+      });
+
+      it('should reject decimal numbers', () => {
+        const result = validator.validateBookingId(123.45);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be an integer');
+      });
+
+      it('should reject decimal string numbers', () => {
+        const result = validator.validateBookingId('123.45');
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be a valid number');
+      });
+
+      it('should reject NaN', () => {
+        const result = validator.validateBookingId(NaN);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be a valid number');
+      });
+
+      it('should reject non-string and non-number types', () => {
+        const result = validator.validateBookingId({} as any);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be a string or number');
+      });
+    });
+
+    describe('invalid booking IDs - value range issues', () => {
+      it('should reject zero booking ID by default', () => {
+        const result = validator.validateBookingId(0);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be positive');
+      });
+
+      it('should reject negative booking ID by default', () => {
+        const result = validator.validateBookingId(-123);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be positive');
+      });
+
+      it('should reject negative string booking ID by default', () => {
+        const result = validator.validateBookingId('-123');
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be positive');
+      });
+
+      it('should allow zero when requirePositiveNumber is false', () => {
+        const options: IBookingIdValidationOptions = { requirePositiveNumber: false };
+        const result = validator.validateBookingId(0, options);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should reject negative numbers even when requirePositiveNumber is false', () => {
+        const options: IBookingIdValidationOptions = { requirePositiveNumber: false };
+        const result = validator.validateBookingId(-123, options);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID cannot be negative');
+      });
+
+      it('should reject booking ID below minimum value', () => {
+        const options: IBookingIdValidationOptions = { minValue: 100 };
+        const result = validator.validateBookingId(50, options);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be at least 100');
+      });
+
+      it('should reject string booking ID below minimum value', () => {
+        const options: IBookingIdValidationOptions = { minValue: 100 };
+        const result = validator.validateBookingId('50', options);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be at least 100');
+      });
+    });
+
+    describe('option combinations', () => {
+      it('should validate with multiple options - valid case', () => {
+        const options: IBookingIdValidationOptions = {
+          allowStringFormat: true,
+          requirePositiveNumber: true,
+          minValue: 1000
+        };
+        const result = validator.validateBookingId('2000', options);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should handle multiple validation errors', () => {
+        const options: IBookingIdValidationOptions = {
+          allowStringFormat: false,
+          minValue: 1000
+        };
+        const result = validator.validateBookingId('500', options);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toHaveLength(1); // First error stops validation
+        expect(result.errors).toContain('String format not allowed for booking ID');
+      });
+
+      it('should validate with minimum value and no positive requirement', () => {
+        const options: IBookingIdValidationOptions = {
+          requirePositiveNumber: false,
+          minValue: 0
+        };
+        const result = validator.validateBookingId(0, options);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should handle very large numbers', () => {
+        const result = validator.validateBookingId(Number.MAX_SAFE_INTEGER);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should reject decimal numbers that are not integers', () => {
+        // Test with a decimal that's clearly not an integer
+        const result = validator.validateBookingId(123.45);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be an integer');
+      });
+
+      it('should handle string numbers with leading zeros', () => {
+        const result = validator.validateBookingId('00123');
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should reject strings with invalid characters mixed with numbers', () => {
+        const invalidInputs = ['123e4', '123.0', '12,345', '123 456'];
+        invalidInputs.forEach(input => {
+          const result = validator.validateBookingId(input);
+          expect(result.isValid).toBe(false);
+          expect(result.errors).toContain('Booking ID must be a valid number');
+        });
+      });
+    });
+
+    describe('default option behavior', () => {
+      it('should allow string format by default', () => {
+        const result = validator.validateBookingId('12345');
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
+
+      it('should require positive numbers by default', () => {
+        const result = validator.validateBookingId(-1);
+        expect(result.isValid).toBe(false);
+        expect(result.errors).toContain('Booking ID must be positive');
+      });
+
+      it('should have no minimum value by default', () => {
+        const result = validator.validateBookingId(1);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+      });
     });
   });
 });

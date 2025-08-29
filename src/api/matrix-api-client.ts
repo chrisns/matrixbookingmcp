@@ -1,7 +1,7 @@
 import { IMatrixAPIClient, IAPIRequest, IAPIResponse } from '../types/api.types.js';
 import { ICredentials } from '../types/authentication.types.js';
 import { IAvailabilityRequest, IAvailabilityResponse } from '../types/availability.types.js';
-import { IBookingRequest, IBookingResponse } from '../types/booking.types.js';
+import { IBookingRequest, IBookingResponse, ICancelBookingRequest, ICancelBookingResponse } from '../types/booking.types.js';
 import { ILocation, ILocationHierarchyResponse, ILocationQueryRequest } from '../types/location.types.js';
 import { ICurrentUserResponse, IUserBookingsRequest, IUserBookingsResponse } from '../types/user.types.js';
 import { IOrganizationResponse } from '../types/organization.types.js';
@@ -72,6 +72,31 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     };
 
     const response = await this.makeRequest<IBookingResponse>(apiRequest);
+    return response.data;
+  }
+
+  async cancelBooking(request: ICancelBookingRequest, credentials: ICredentials): Promise<ICancelBookingResponse> {
+    const config = this.configManager.getConfig();
+    const headers = this.authManager.createAuthHeader(credentials);
+    
+    // Build query parameters with defaults
+    const params = new URLSearchParams();
+    params.append('notifyScope', request.notifyScope || 'ALL_ATTENDEES');
+    params.append('sendNotifications', (request.sendNotifications !== false).toString());
+    
+    if (request.reason) {
+      params.append('reason', request.reason);
+    }
+
+    const url = `${config.apiBaseUrl}/booking/${request.bookingId}?${params.toString()}`;
+    
+    const apiRequest: IAPIRequest = {
+      method: 'DELETE',
+      url,
+      headers
+    };
+
+    const response = await this.makeRequest<ICancelBookingResponse>(apiRequest);
     return response.data;
   }
 

@@ -7,7 +7,9 @@ import type {
   ILocationValidationOptions, 
   IInputValidator, 
   ISanitizationOptions, 
-  IInputSanitizer 
+  IInputSanitizer,
+  IBookingIdValidationOptions,
+  IBookingIdValidation
 } from '../../../src/types/validation.types.js';
 
 describe('Validation Types', () => {
@@ -182,6 +184,29 @@ describe('Validation Types', () => {
           };
         }
 
+        validateBookingId(bookingId: string | number, _options?: IBookingIdValidationOptions): IBookingIdValidation {
+          const errors: string[] = [];
+          let numericValue: number;
+
+          if (typeof bookingId === 'number') {
+            numericValue = bookingId;
+          } else {
+            numericValue = parseInt(bookingId, 10);
+            if (isNaN(numericValue)) {
+              errors.push('Invalid booking ID format');
+            }
+          }
+
+          if (numericValue <= 0) {
+            errors.push('Booking ID must be positive');
+          }
+
+          return {
+            isValid: errors.length === 0,
+            errors
+          };
+        }
+
         sanitizeString(input: string): string {
           return input.trim().replace(/[<>]/g, '');
         }
@@ -266,6 +291,29 @@ describe('Validation Types', () => {
             isValid: emailRegex.test(trimmed),
             errors: emailRegex.test(trimmed) ? [] : ['Invalid email format'],
             sanitizedValue: emailRegex.test(trimmed) ? trimmed.toLowerCase() : undefined
+          };
+        }
+
+        validateBookingId(bookingId: string | number, _options?: IBookingIdValidationOptions): IBookingIdValidation {
+          const errors: string[] = [];
+          let numericValue: number;
+
+          if (typeof bookingId === 'number') {
+            numericValue = bookingId;
+          } else {
+            numericValue = parseInt(bookingId, 10);
+            if (isNaN(numericValue)) {
+              errors.push('Invalid booking ID format');
+            }
+          }
+
+          if (numericValue <= 0) {
+            errors.push('Booking ID must be positive');
+          }
+
+          return {
+            isValid: errors.length === 0,
+            errors
           };
         }
 
@@ -442,6 +490,278 @@ describe('Validation Types', () => {
 
       const messyId = sanitizer.sanitizeNumericId('id-123-test');
       expect(messyId).toBe(123);
+    });
+  });
+
+  describe('IBookingIdValidationOptions interface', () => {
+    it('should define correct booking ID validation options structure', () => {
+      const options: IBookingIdValidationOptions = {
+        allowStringFormat: true,
+        requirePositiveNumber: true,
+        minValue: 1
+      };
+
+      expect(options).toHaveProperty('allowStringFormat');
+      expect(options).toHaveProperty('requirePositiveNumber');
+      expect(options).toHaveProperty('minValue');
+      expect(typeof options.allowStringFormat).toBe('boolean');
+      expect(typeof options.requirePositiveNumber).toBe('boolean');
+      expect(typeof options.minValue).toBe('number');
+    });
+
+    it('should handle all optional properties', () => {
+      const emptyOptions: IBookingIdValidationOptions = {};
+      const partialOptions: IBookingIdValidationOptions = {
+        allowStringFormat: false,
+        minValue: 100
+      };
+
+      expect(emptyOptions.allowStringFormat).toBeUndefined();
+      expect(emptyOptions.requirePositiveNumber).toBeUndefined();
+      expect(emptyOptions.minValue).toBeUndefined();
+      
+      expect(partialOptions.allowStringFormat).toBe(false);
+      expect(partialOptions.requirePositiveNumber).toBeUndefined();
+      expect(partialOptions.minValue).toBe(100);
+    });
+
+    it('should support different validation configurations', () => {
+      const strictOptions: IBookingIdValidationOptions = {
+        allowStringFormat: false,
+        requirePositiveNumber: true,
+        minValue: 1
+      };
+
+      const flexibleOptions: IBookingIdValidationOptions = {
+        allowStringFormat: true,
+        requirePositiveNumber: false,
+        minValue: 0
+      };
+
+      expect(strictOptions.allowStringFormat).toBe(false);
+      expect(strictOptions.requirePositiveNumber).toBe(true);
+      expect(strictOptions.minValue).toBe(1);
+
+      expect(flexibleOptions.allowStringFormat).toBe(true);
+      expect(flexibleOptions.requirePositiveNumber).toBe(false);
+      expect(flexibleOptions.minValue).toBe(0);
+    });
+  });
+
+  describe('IBookingIdValidation interface', () => {
+    it('should define correct booking ID validation result structure', () => {
+      const validResult: IBookingIdValidation = {
+        isValid: true,
+        errors: []
+      };
+
+      const invalidResult: IBookingIdValidation = {
+        isValid: false,
+        errors: ['Booking ID must be a positive number', 'Booking ID cannot be zero']
+      };
+
+      expect(validResult).toHaveProperty('isValid');
+      expect(validResult).toHaveProperty('errors');
+      expect(typeof validResult.isValid).toBe('boolean');
+      expect(Array.isArray(validResult.errors)).toBe(true);
+
+      expect(invalidResult).toHaveProperty('isValid');
+      expect(invalidResult).toHaveProperty('errors');
+      expect(typeof invalidResult.isValid).toBe('boolean');
+      expect(Array.isArray(invalidResult.errors)).toBe(true);
+      expect(invalidResult.errors.length).toBe(2);
+    });
+
+    it('should handle valid booking ID validation results', () => {
+      const successResults: IBookingIdValidation[] = [
+        { isValid: true, errors: [] },
+        { isValid: true, errors: [] }
+      ];
+
+      successResults.forEach(result => {
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toEqual([]);
+      });
+    });
+
+    it('should handle invalid booking ID validation results with error messages', () => {
+      const errorResults: IBookingIdValidation[] = [
+        { isValid: false, errors: ['Booking ID is required'] },
+        { isValid: false, errors: ['Booking ID must be numeric'] },
+        { isValid: false, errors: ['Booking ID must be positive', 'Booking ID below minimum value'] }
+      ];
+
+      errorResults.forEach(result => {
+        expect(result.isValid).toBe(false);
+        expect(result.errors.length).toBeGreaterThan(0);
+        result.errors.forEach(error => {
+          expect(typeof error).toBe('string');
+          expect(error.length).toBeGreaterThan(0);
+        });
+      });
+    });
+
+    it('should support multiple error scenarios', () => {
+      const multipleErrors: IBookingIdValidation = {
+        isValid: false,
+        errors: [
+          'Booking ID cannot be empty',
+          'Booking ID must be numeric',
+          'Booking ID must be positive',
+          'Booking ID below minimum threshold'
+        ]
+      };
+
+      expect(multipleErrors.isValid).toBe(false);
+      expect(multipleErrors.errors.length).toBe(4);
+      multipleErrors.errors.forEach(error => {
+        expect(typeof error).toBe('string');
+        expect(error.trim().length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('IInputValidator interface extension', () => {
+    it('should support optional validateBookingId method', () => {
+      class TestValidatorWithBookingId implements IInputValidator {
+        validateDate(_dateString: string, _options?: IDateValidationOptions): IValidationResult {
+          return { isValid: true, errors: [] };
+        }
+
+        validateTimeRange(_fromDate: string, _toDate: string, _options?: IDateValidationOptions): IValidationResult {
+          return { isValid: true, errors: [] };
+        }
+
+        validateLocationId(_locationId: number, _options?: ILocationValidationOptions): IValidationResult {
+          return { isValid: true, errors: [] };
+        }
+
+        validateBookingId(bookingId: string | number, options?: IBookingIdValidationOptions): IBookingIdValidation {
+          const errors: string[] = [];
+
+          // Check if booking ID is provided
+          if (bookingId === null || bookingId === undefined || bookingId === '') {
+            errors.push('Booking ID is required');
+            return { isValid: false, errors };
+          }
+
+          // Convert string to number if needed
+          let numericId: number;
+          if (typeof bookingId === 'string') {
+            if (!options?.allowStringFormat) {
+              errors.push('Booking ID must be numeric, not string');
+            }
+            numericId = parseInt(bookingId, 10);
+            if (isNaN(numericId)) {
+              errors.push('Booking ID must be a valid number');
+              return { isValid: false, errors };
+            }
+          } else {
+            numericId = bookingId;
+          }
+
+          // Validate positive number
+          if (options?.requirePositiveNumber !== false && numericId <= 0) {
+            errors.push('Booking ID must be positive');
+          }
+
+          // Validate minimum value
+          if (options?.minValue !== undefined && numericId < options.minValue) {
+            errors.push(`Booking ID must be at least ${options.minValue}`);
+          }
+
+          // Validate integer
+          if (!Number.isInteger(numericId)) {
+            errors.push('Booking ID must be an integer');
+          }
+
+          return {
+            isValid: errors.length === 0,
+            errors
+          };
+        }
+
+        validateEmailAddress(_email: string): IValidationResult {
+          return { isValid: true, errors: [] };
+        }
+
+        sanitizeString(_input: string): string {
+          return _input;
+        }
+      }
+
+      const validator = new TestValidatorWithBookingId();
+      expect(validator.validateBookingId).toBeDefined();
+      expect(typeof validator.validateBookingId).toBe('function');
+
+      // Test valid numeric booking ID
+      const validNumeric = validator.validateBookingId(12345);
+      expect(validNumeric.isValid).toBe(true);
+      expect(validNumeric.errors).toEqual([]);
+
+      // Test valid string booking ID with allowStringFormat
+      const validString = validator.validateBookingId('12345', { allowStringFormat: true });
+      expect(validString.isValid).toBe(true);
+      expect(validString.errors).toEqual([]);
+
+      // Test invalid string booking ID without allowStringFormat
+      const invalidString = validator.validateBookingId('12345');
+      expect(invalidString.isValid).toBe(false);
+      expect(invalidString.errors).toContain('Booking ID must be numeric, not string');
+
+      // Test negative booking ID
+      const negative = validator.validateBookingId(-1);
+      expect(negative.isValid).toBe(false);
+      expect(negative.errors).toContain('Booking ID must be positive');
+
+      // Test with minimum value
+      const belowMin = validator.validateBookingId(5, { minValue: 10 });
+      expect(belowMin.isValid).toBe(false);
+      expect(belowMin.errors).toContain('Booking ID must be at least 10');
+
+      // Test invalid string value
+      const invalidValue = validator.validateBookingId('abc', { allowStringFormat: true });
+      expect(invalidValue.isValid).toBe(false);
+      expect(invalidValue.errors).toContain('Booking ID must be a valid number');
+
+      // Test empty string
+      const emptyString = validator.validateBookingId('');
+      expect(emptyString.isValid).toBe(false);
+      expect(emptyString.errors).toContain('Booking ID is required');
+    });
+
+    it('should require validateBookingId method in all validators', () => {
+      class TestValidatorWithoutBookingId implements IInputValidator {
+        validateDate(_dateString: string, _options?: IDateValidationOptions): IValidationResult {
+          return { isValid: true, errors: [] };
+        }
+
+        validateTimeRange(_fromDate: string, _toDate: string, _options?: IDateValidationOptions): IValidationResult {
+          return { isValid: true, errors: [] };
+        }
+
+        validateLocationId(_locationId: number, _options?: ILocationValidationOptions): IValidationResult {
+          return { isValid: true, errors: [] };
+        }
+
+        validateBookingId(_bookingId: string | number, _options?: IBookingIdValidationOptions): IBookingIdValidation {
+          return {
+            isValid: true,
+            errors: []
+          };
+        }
+
+        validateEmailAddress(_email: string): IValidationResult {
+          return { isValid: true, errors: [] };
+        }
+
+        sanitizeString(_input: string): string {
+          return _input;
+        }
+      }
+
+      const validator = new TestValidatorWithoutBookingId();
+      expect(typeof validator.validateBookingId).toBe('function');
     });
   });
 });

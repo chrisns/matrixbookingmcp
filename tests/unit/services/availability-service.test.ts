@@ -77,7 +77,8 @@ describe('AvailabilityService', () => {
       getUserBookings: vi.fn(),
       getAllBookings: vi.fn(),
       getLocationHierarchy: vi.fn(),
-      getOrganization: vi.fn()
+      getOrganization: vi.fn(),
+      cancelBooking: vi.fn()
     };
 
     // Create service instance

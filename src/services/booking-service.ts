@@ -1,4 +1,4 @@
-import { IBookingService, IBookingRequest, IBookingResponse, IOwner } from '../types/booking.types.js';
+import { IBookingService, IBookingRequest, IBookingResponse, IOwner, ICancelBookingRequest, ICancelBookingResponse } from '../types/booking.types.js';
 import { IMatrixAPIClient } from '../types/api.types.js';
 import { IAuthenticationManager } from '../types/authentication.types.js';
 import { IConfigurationManager } from '../config/config-manager.js';
@@ -250,5 +250,22 @@ export class BookingService implements IBookingService {
       isValid: errors.length === 0,
       errors
     };
+  }
+
+  async cancelBooking(request: ICancelBookingRequest): Promise<ICancelBookingResponse> {
+    // Validate booking ID before making API call
+    const bookingIdValidation = this.validator.validateBookingId(request.bookingId);
+    if (!bookingIdValidation.isValid) {
+      throw new Error(`Invalid booking ID: ${bookingIdValidation.errors.join(', ')}`);
+    }
+
+    // Validate optional reason field length if provided
+    if (request.reason && request.reason.length > 500) {
+      throw new Error('Cancellation reason cannot exceed 500 characters');
+    }
+
+    // Get credentials and make API call
+    const credentials = await this.authManager.getCredentials();
+    return await this.apiClient.cancelBooking(request, credentials);
   }
 }

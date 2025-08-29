@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BookingService } from '../../../src/services/booking-service.js';
-import { IBookingRequest, IBookingResponse, IOwner, IAttendee } from '../../../src/types/booking.types.js';
+import { IBookingRequest, IBookingResponse, IOwner, IAttendee, ICancelBookingRequest, ICancelBookingResponse } from '../../../src/types/booking.types.js';
 import { IMatrixAPIClient } from '../../../src/types/api.types.js';
 import { IAuthenticationManager, ICredentials, IUserProfile } from '../../../src/types/authentication.types.js';
 import { IConfigurationManager, IServerConfig } from '../../../src/config/config-manager.js';
@@ -64,6 +64,7 @@ describe('BookingService', () => {
     mockApiClient = {
       checkAvailability: vi.fn(),
       createBooking: vi.fn(),
+      cancelBooking: vi.fn(),
       getLocation: vi.fn(),
       makeRequest: vi.fn(),
       getCurrentUser: vi.fn(),
@@ -464,6 +465,213 @@ describe('BookingService', () => {
       await bookingService.createBooking(request);
 
       expect(mockApiClient.createBooking).toHaveBeenCalledWith(request, mockCredentials);
+    });
+  });
+
+  describe('cancelBooking', () => {
+    it('should cancel booking successfully with valid booking ID', async () => {
+      const request: ICancelBookingRequest = {
+        bookingId: 123456,
+        notifyScope: 'ALL_ATTENDEES',
+        sendNotifications: true,
+        reason: 'Meeting cancelled due to schedule conflict'
+      };
+
+      const expectedResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 123456,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T12:00:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES',
+        reason: 'Meeting cancelled due to schedule conflict',
+        originalBooking: {
+          locationId: 123,
+          locationName: 'Conference Room A',
+          timeFrom: '2024-01-15T09:00:00.000Z',
+          timeTo: '2024-01-15T10:00:00.000Z',
+          attendeeCount: 2,
+          owner: 'Test User'
+        }
+      };
+
+      vi.mocked(mockApiClient.cancelBooking!).mockResolvedValue(expectedResponse);
+
+      const result = await bookingService.cancelBooking(request);
+
+      expect(result).toEqual(expectedResponse);
+      expect(mockApiClient.cancelBooking!).toHaveBeenCalledWith(request, mockCredentials);
+    });
+
+    it('should cancel booking with string booking ID', async () => {
+      const request: ICancelBookingRequest = {
+        bookingId: '123456'
+      };
+
+      const expectedResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 123456,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T12:00:00.000Z',
+        notificationsSent: false,
+        notifyScope: 'NONE'
+      };
+
+      vi.mocked(mockApiClient.cancelBooking!).mockResolvedValue(expectedResponse);
+
+      const result = await bookingService.cancelBooking(request);
+
+      expect(result).toEqual(expectedResponse);
+      expect(mockApiClient.cancelBooking!).toHaveBeenCalledWith(request, mockCredentials);
+    });
+
+    it('should cancel booking with minimal parameters (defaults)', async () => {
+      const request: ICancelBookingRequest = {
+        bookingId: 789012
+      };
+
+      const expectedResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 789012,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T12:00:00.000Z',
+        notificationsSent: false,
+        notifyScope: 'NONE'
+      };
+
+      vi.mocked(mockApiClient.cancelBooking!).mockResolvedValue(expectedResponse);
+
+      const result = await bookingService.cancelBooking(request);
+
+      expect(result).toEqual(expectedResponse);
+      expect(mockApiClient.cancelBooking!).toHaveBeenCalledWith(request, mockCredentials);
+    });
+
+    it('should throw error for invalid booking ID (negative number)', async () => {
+      const request: ICancelBookingRequest = {
+        bookingId: -123
+      };
+
+      await expect(bookingService.cancelBooking(request))
+        .rejects.toThrow('Invalid booking ID: Booking ID must be positive');
+    });
+
+    it('should throw error for invalid booking ID (zero)', async () => {
+      const request: ICancelBookingRequest = {
+        bookingId: 0
+      };
+
+      await expect(bookingService.cancelBooking(request))
+        .rejects.toThrow('Invalid booking ID: Booking ID must be positive');
+    });
+
+    it('should throw error for invalid booking ID (non-numeric string)', async () => {
+      const request: ICancelBookingRequest = {
+        bookingId: 'invalid'
+      };
+
+      await expect(bookingService.cancelBooking(request))
+        .rejects.toThrow('Invalid booking ID: Booking ID must be a valid number');
+    });
+
+    it('should throw error for invalid booking ID (empty string)', async () => {
+      const request: ICancelBookingRequest = {
+        bookingId: ''
+      };
+
+      await expect(bookingService.cancelBooking(request))
+        .rejects.toThrow('Invalid booking ID: Booking ID is required');
+    });
+
+    it('should throw error for reason exceeding 500 characters', async () => {
+      const longReason = 'a'.repeat(501);
+      const request: ICancelBookingRequest = {
+        bookingId: 123456,
+        reason: longReason
+      };
+
+      await expect(bookingService.cancelBooking(request))
+        .rejects.toThrow('Cancellation reason cannot exceed 500 characters');
+    });
+
+    it('should accept reason exactly at 500 character limit', async () => {
+      const maxReason = 'a'.repeat(500);
+      const request: ICancelBookingRequest = {
+        bookingId: 123456,
+        reason: maxReason
+      };
+
+      const expectedResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 123456,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T12:00:00.000Z',
+        notificationsSent: false,
+        notifyScope: 'NONE',
+        reason: maxReason
+      };
+
+      vi.mocked(mockApiClient.cancelBooking!).mockResolvedValue(expectedResponse);
+
+      const result = await bookingService.cancelBooking(request);
+
+      expect(result).toEqual(expectedResponse);
+      expect(mockApiClient.cancelBooking!).toHaveBeenCalledWith(request, mockCredentials);
+    });
+
+    it('should handle API client errors gracefully', async () => {
+      const request: ICancelBookingRequest = {
+        bookingId: 123456
+      };
+
+      const apiError = new Error('Booking not found');
+      vi.mocked(mockApiClient.cancelBooking!).mockRejectedValue(apiError);
+
+      await expect(bookingService.cancelBooking(request))
+        .rejects.toThrow('Booking not found');
+
+      expect(mockApiClient.cancelBooking!).toHaveBeenCalledWith(request, mockCredentials);
+    });
+
+    it('should handle authentication errors gracefully', async () => {
+      const request: ICancelBookingRequest = {
+        bookingId: 123456
+      };
+
+      const authError = new Error('Authentication failed');
+      vi.mocked(mockAuthManager.getCredentials).mockRejectedValue(authError);
+
+      await expect(bookingService.cancelBooking(request))
+        .rejects.toThrow('Authentication failed');
+
+      expect(mockAuthManager.getCredentials).toHaveBeenCalled();
+    });
+
+    it('should validate all notification scope options', async () => {
+      const notifyScopes: Array<'ALL_ATTENDEES' | 'OWNER_ONLY' | 'NONE'> = ['ALL_ATTENDEES', 'OWNER_ONLY', 'NONE'];
+      
+      for (const notifyScope of notifyScopes) {
+        const request: ICancelBookingRequest = {
+          bookingId: 123456,
+          notifyScope
+        };
+
+        const expectedResponse: ICancelBookingResponse = {
+          success: true,
+          bookingId: 123456,
+          status: 'CANCELLED',
+          cancellationTime: '2024-01-15T12:00:00.000Z',
+          notificationsSent: notifyScope !== 'NONE',
+          notifyScope
+        };
+
+        vi.mocked(mockApiClient.cancelBooking!).mockResolvedValue(expectedResponse);
+
+        const result = await bookingService.cancelBooking(request);
+
+        expect(result.notifyScope).toBe(notifyScope);
+        expect(mockApiClient.cancelBooking!).toHaveBeenCalledWith(request, mockCredentials);
+      }
     });
   });
 });

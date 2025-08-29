@@ -153,6 +153,9 @@ export class MatrixBookingMCPServer {
           case 'health_check':
             return await this.handleHealthCheck(args || {});
           
+          case 'matrix_booking_cancel_booking':
+            return await this.handleCancelBooking(args || {});
+
           case 'get_tool_guidance':
             return await this.handleGetToolGuidance(args || {});
           
@@ -443,6 +446,37 @@ export class MatrixBookingMCPServer {
         }
       },
       {
+        name: 'matrix_booking_cancel_booking',
+        description: 'Cancel an existing room or desk booking with notification options. Use this tool to cancel bookings you own or have permission to cancel.\n\nCommon Use Cases:\n- "Cancel my 3pm meeting room booking"\n- "Cancel booking ID 12345 and notify attendees"\n- "Remove my desk reservation for tomorrow"\n- "Cancel the conference room booking for project meeting"\n\nNot For:\n- Creating new bookings (use matrix_booking_create_booking)\n- Checking availability (use matrix_booking_check_availability)\n- Viewing existing bookings (use get_user_bookings)\n- Modifying booking details (contact administrator)\n\nWorkflow Position: Final action in booking management workflow - Use after identifying booking to cancel\n\nPrerequisites:\n- Use get_user_bookings to find the booking ID to cancel\n- Verify booking ownership and permissions\n- Consider notifying attendees about cancellation\n\nRelated Tools:\n- get_user_bookings: Prerequisite - Find booking ID to cancel\n- matrix_booking_check_availability: Follow-up - Find alternative time slots\n- matrix_booking_create_booking: Follow-up - Create replacement booking\n- matrix_booking_get_location: Support - Get location details for cancelled booking',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            bookingId: {
+              type: ['string', 'number'],
+              description: 'The booking ID to cancel. Can be string or number format. Required parameter.'
+            },
+            notifyScope: {
+              type: 'string',
+              enum: ['ALL_ATTENDEES', 'OWNER_ONLY', 'NONE'],
+              description: 'Who to notify about the cancellation. Defaults to \'ALL_ATTENDEES\'.',
+              default: 'ALL_ATTENDEES'
+            },
+            sendNotifications: {
+              type: 'boolean',
+              description: 'Whether to send cancellation notifications. Defaults to true.',
+              default: true
+            },
+            reason: {
+              type: 'string',
+              description: 'Optional cancellation reason for attendee notification and audit trail. Maximum 500 characters.',
+              maxLength: 500
+            }
+          },
+          required: ['bookingId'],
+          additionalProperties: false
+        }
+      },
+      {
         name: 'get_tool_guidance',
         description: 'Get intelligent guidance on Matrix Booking MCP tool selection and workflows. Provides tool recommendations, workflow sequences, and troubleshooting support for AI assistants.\\n\\nCommon Use Cases:\\n- "What tool should I use to see user bookings?"\\n- "How do I create a booking workflow?"\\n- "I\'m getting 405 errors, what should I try?"\\n- "What\'s the correct sequence for booking a room?"\\n- "Which tool handles user calendar queries?"\\n\\nNot For:\\n- Actually executing booking operations (use specific booking tools)\\n- Getting real data from the system (use functional tools)\\n- Making API calls (this is guidance only)\\n- Replacing proper tool usage (use appropriate tools after getting guidance)\\n\\nWorkflow Position: Meta-tool for workflow planning - Use before other tools to ensure correct selection\\n\\nRelated Tools:\\n- All Matrix Booking tools: Support - Use guidance to select appropriate tool\\n- health_check: Prerequisite - Use first if tools are failing\\n- get_current_user: Support - Use to verify context before following guidance',
         inputSchema: {
@@ -531,7 +565,7 @@ export class MatrixBookingMCPServer {
   }
 
   private async handleCreateBooking(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
-    console.log('MCP Server: Handling create booking request:', args);
+    console.error('MCP Server: Handling create booking request:', args);
 
     try {
       // Build partial request object with only defined values
@@ -559,12 +593,12 @@ export class MatrixBookingMCPServer {
       } else if (args['locationName']) {
         // Resolve location name to ID using hierarchical search
         const locationName = args['locationName'] as string;
-        console.log('MCP Server: Resolving location name:', locationName);
+        console.error('MCP Server: Resolving location name:', locationName);
         
         try {
           const resolvedLocationId = await this.bookingService.resolveLocationId(locationName);
           partialRequest.locationId = resolvedLocationId;
-          console.log('MCP Server: Resolved location ID:', resolvedLocationId);
+          console.error('MCP Server: Resolved location ID:', resolvedLocationId);
         } catch (error) {
           console.error('MCP Server: Location resolution failed:', error);
           return this.formatEnhancedError(error, 'matrix_booking_create_booking', 'booking');
@@ -612,7 +646,7 @@ export class MatrixBookingMCPServer {
   }
 
   private async handleGetLocation(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
-    console.log('MCP Server: Handling get location request:', args);
+    console.error('MCP Server: Handling get location request:', args);
 
     try {
       let response;
@@ -1059,6 +1093,60 @@ export class MatrixBookingMCPServer {
     }
   }
 
+  private async handleCancelBooking(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
+    console.error('MCP Server: Handling cancel booking request:', args);
+
+    try {
+      // Build request object with validated parameters
+      const request: {
+        bookingId: string | number;
+        notifyScope?: 'ALL_ATTENDEES' | 'OWNER_ONLY' | 'NONE';
+        sendNotifications?: boolean;
+        reason?: string;
+      } = {
+        bookingId: args['bookingId'] as string | number
+      };
+
+      // Optional parameters with defaults
+      if (args['notifyScope']) {
+        request.notifyScope = args['notifyScope'] as 'ALL_ATTENDEES' | 'OWNER_ONLY' | 'NONE';
+      }
+
+      if (args['sendNotifications'] !== undefined) {
+        request.sendNotifications = args['sendNotifications'] as boolean;
+      }
+
+      if (args['reason']) {
+        request.reason = args['reason'] as string;
+      }
+
+      const response = await this.bookingService.cancelBooking(request);
+
+      // Enhance response with location name if available
+      if (response.originalBooking?.locationId) {
+        try {
+          const location = await this.locationService.getLocation(response.originalBooking.locationId);
+          response.originalBooking.locationName = location.name;
+        } catch (error) {
+          console.warn('Failed to resolve location name for cancelled booking:', error);
+        }
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(response, null, 2)
+          }
+        ]
+      };
+
+    } catch (error) {
+      console.error('MCP Server: Error cancelling booking:', error);
+      return this.formatEnhancedError(error, 'matrix_booking_cancel_booking', 'cancel_booking');
+    }
+  }
+
   private async handleGetToolGuidance(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
     console.error('MCP Server: Handling get tool guidance request:', args);
 
@@ -1186,6 +1274,30 @@ export class MatrixBookingMCPServer {
           ]
         },
         {
+          scenario: "User wants to cancel a booking",
+          description: "Complete workflow for cancelling existing bookings with proper verification",
+          tools: [
+            {
+              tool: "get_user_bookings",
+              order: 1,
+              purpose: "Find the booking ID to cancel and verify ownership",
+              required: true
+            },
+            {
+              tool: "matrix_booking_cancel_booking",
+              order: 2,
+              purpose: "Cancel the identified booking with notification options",
+              required: true
+            },
+            {
+              tool: "get_user_bookings",
+              order: 3,
+              purpose: "Verify the booking was successfully cancelled",
+              required: false
+            }
+          ]
+        },
+        {
           scenario: "System troubleshooting and diagnostics",
           description: "Diagnose issues, verify authentication, check system health",
           tools: [
@@ -1260,6 +1372,21 @@ export class MatrixBookingMCPServer {
           primaryTool: "health_check",
           supportingTools: ["get_current_user"],
           avoidTools: []
+        },
+        "cancel booking": {
+          primaryTool: "matrix_booking_cancel_booking",
+          supportingTools: ["get_user_bookings", "matrix_booking_get_location"],
+          avoidTools: ["matrix_booking_create_booking", "matrix_booking_check_availability"]
+        },
+        "cancel my booking": {
+          primaryTool: "get_user_bookings",
+          supportingTools: ["matrix_booking_cancel_booking"],
+          avoidTools: ["matrix_booking_create_booking"]
+        },
+        "remove booking": {
+          primaryTool: "matrix_booking_cancel_booking",
+          supportingTools: ["get_user_bookings"],
+          avoidTools: ["matrix_booking_create_booking"]
         }
       },
       
@@ -1319,6 +1446,7 @@ export class MatrixBookingMCPServer {
       toolSelection: {
         "User asking about existing bookings": "Always use get_user_bookings, never use matrix_booking_check_availability",
         "User wants to create new booking": "Start with matrix_booking_check_availability or find_rooms_with_facilities, then use matrix_booking_create_booking",
+        "User wants to cancel existing booking": "First use get_user_bookings to find booking ID, then use matrix_booking_cancel_booking",
         "User needs room with specific features": "Use find_rooms_with_facilities with natural language query",
         "User exploring office layout": "Start with get_locations or get_booking_categories",
         "Tools failing or errors occurring": "Start with health_check, then get_current_user for authentication verification"
@@ -2011,6 +2139,84 @@ export class MatrixBookingMCPServer {
           '6. Use get_tool_guidance for specific troubleshooting advice',
           '7. Contact support with error details if problem persists'
         ];
+    }
+
+    // Handle cancel booking specific errors
+    if (toolContext === 'cancel_booking') {
+      switch (errorType) {
+        case 'RESOURCE_NOT_FOUND':
+          suggestions.actions.push({
+            action: "Verify booking exists and get valid booking ID",
+            tool: "get_user_bookings",
+            description: "List your current bookings to find valid booking IDs to cancel"
+          });
+          suggestions.actions.push({
+            action: "Check booking status",
+            tool: "get_user_bookings",
+            description: "Verify the booking hasn't already been cancelled",
+            parameters: { status: 'ACTIVE' }
+          });
+          break;
+
+        case 'PERMISSION_ERROR':
+          suggestions.actions.push({
+            action: "Check booking ownership",
+            tool: "get_user_bookings",
+            description: "Verify you own the booking you're trying to cancel"
+          });
+          suggestions.actions.push({
+            action: "Contact booking owner for cancellation",
+            tool: "get_tool_guidance",
+            description: "Get guidance on booking ownership and cancellation permissions",
+            parameters: { intent: "booking cancellation permissions" }
+          });
+          break;
+
+        case 'BOOKING_CONFLICT_ERROR':
+          suggestions.actions.push({
+            action: "Check if booking already cancelled",
+            tool: "get_user_bookings",
+            description: "Verify current status of the booking",
+            parameters: { status: 'CANCELLED' }
+          });
+          suggestions.actions.push({
+            action: "Check if booking is in progress",
+            tool: "get_user_bookings",
+            description: "Active bookings may not be cancellable"
+          });
+          break;
+
+        case 'VALIDATION_ERROR':
+          suggestions.actions.push({
+            action: "Get valid booking ID format",
+            tool: "get_user_bookings",
+            description: "Get properly formatted booking IDs from your booking list"
+          });
+          suggestions.actions.push({
+            action: "Verify cancellation parameters",
+            tool: "get_tool_guidance",
+            description: "Get parameter validation guidance for booking cancellation",
+            parameters: { intent: "cancel booking parameters" }
+          });
+          break;
+      }
+
+      // Common cancel booking suggestions
+      suggestions.commonCauses.push(
+        'Booking ID does not exist or is incorrect',
+        'Booking already cancelled or completed',
+        'User lacks permission to cancel booking',
+        'Booking is currently in progress and cannot be cancelled'
+      );
+
+      suggestions.diagnosticSteps.push(
+        '1. Use get_user_bookings to list your active bookings',
+        '2. Verify the booking ID exists and is cancellable',
+        '3. Check booking ownership and permissions',
+        '4. Ensure booking is not already cancelled or in progress'
+      );
+
+      suggestions.workflows = ['Booking management and cancellation workflow'];
     }
 
     return suggestions;

@@ -24,10 +24,22 @@ export interface ILocationValidationOptions {
   requireLocationId?: boolean;
 }
 
+export interface IBookingIdValidationOptions {
+  allowStringFormat?: boolean;
+  requirePositiveNumber?: boolean;
+  minValue?: number;
+}
+
+export interface IBookingIdValidation {
+  isValid: boolean;
+  errors: string[];
+}
+
 export interface IInputValidator {
   validateDate(_dateString: string, _options?: IDateValidationOptions): IValidationResult;
   validateTimeRange(_fromDate: string, _toDate: string, _options?: IDateValidationOptions): IValidationResult;
   validateLocationId(_locationId: number, _options?: ILocationValidationOptions): IValidationResult;
+  validateBookingId(_bookingId: string | number, _options?: IBookingIdValidationOptions): IBookingIdValidation;
   validateEmailAddress(_email: string): IValidationResult;
   sanitizeString(_input: string): string;
 }

@@ -6,7 +6,7 @@ import type {
 } from '../../../src/types/api.types.js';
 import type { ICredentials } from '../../../src/types/authentication.types.js';
 import type { IAvailabilityRequest, IAvailabilityResponse } from '../../../src/types/availability.types.js';
-import type { IBookingRequest, IBookingResponse } from '../../../src/types/booking.types.js';
+import type { IBookingRequest, IBookingResponse, ICancelBookingRequest, ICancelBookingResponse } from '../../../src/types/booking.types.js';
 import type { ILocation, ILocationQueryRequest, ILocationHierarchyResponse } from '../../../src/types/location.types.js';
 import type { ICurrentUserResponse, IUserBookingsRequest, IUserBookingsResponse } from '../../../src/types/user.types.js';
 import type { IOrganizationResponse } from '../../../src/types/organization.types.js';
@@ -351,6 +351,21 @@ describe('API Types', () => {
             rootLocation: { id: 1, name: 'Root Location' }
           };
         }
+
+        async cancelBooking(request: ICancelBookingRequest, _credentials: ICredentials): Promise<ICancelBookingResponse> {
+          const response: ICancelBookingResponse = {
+            success: true,
+            bookingId: typeof request.bookingId === 'number' ? request.bookingId : parseInt(request.bookingId.toString()),
+            status: 'CANCELLED',
+            cancellationTime: new Date().toISOString(),
+            notificationsSent: request.sendNotifications ?? true,
+            notifyScope: request.notifyScope ?? 'ALL_ATTENDEES'
+          };
+          if (request.reason) {
+            response.reason = request.reason;
+          }
+          return response;
+        }
       }
 
       const client = new MockMatrixAPIClient();
@@ -527,6 +542,21 @@ describe('API Types', () => {
             rootLocation: { id: 1, name: 'Root Location' }
           };
         }
+
+        async cancelBooking(request: ICancelBookingRequest, _credentials: ICredentials): Promise<ICancelBookingResponse> {
+          const response: ICancelBookingResponse = {
+            success: true,
+            bookingId: typeof request.bookingId === 'number' ? request.bookingId : parseInt(request.bookingId.toString()),
+            status: 'CANCELLED',
+            cancellationTime: new Date().toISOString(),
+            notificationsSent: request.sendNotifications ?? true,
+            notifyScope: request.notifyScope ?? 'ALL_ATTENDEES'
+          };
+          if (request.reason) {
+            response.reason = request.reason;
+          }
+          return response;
+        }
       }
 
       const client = new TestMatrixAPIClient();
@@ -669,6 +699,25 @@ describe('API Types', () => {
             locationKinds: [],
             rootLocation: { id: 1, name: 'Root Location' }
           };
+        }
+
+        async cancelBooking(request: ICancelBookingRequest, _credentials: ICredentials): Promise<ICancelBookingResponse> {
+          if (_credentials.username === 'invalid') {
+            throw new Error('Authentication failed');
+          }
+          
+          const response: ICancelBookingResponse = {
+            success: true,
+            bookingId: typeof request.bookingId === 'number' ? request.bookingId : parseInt(request.bookingId.toString()),
+            status: 'CANCELLED',
+            cancellationTime: new Date().toISOString(),
+            notificationsSent: request.sendNotifications ?? true,
+            notifyScope: request.notifyScope ?? 'ALL_ATTENDEES'
+          };
+          if (request.reason) {
+            response.reason = request.reason;
+          }
+          return response;
         }
       }
 

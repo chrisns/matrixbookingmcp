@@ -4,7 +4,9 @@ import type {
   IBookingResponse, 
   IAttendee, 
   IOwner, 
-  IBookingService 
+  IBookingService,
+  ICancelBookingRequest,
+  ICancelBookingResponse
 } from '../../../src/types/booking.types.js';
 import type { ILocation } from '../../../src/types/location.types.js';
 
@@ -359,6 +361,21 @@ describe('Booking Types', () => {
             request.owner.name
           );
         }
+
+        async cancelBooking(request: ICancelBookingRequest): Promise<ICancelBookingResponse> {
+          const response: ICancelBookingResponse = {
+            success: true,
+            bookingId: typeof request.bookingId === 'number' ? request.bookingId : parseInt(request.bookingId.toString()),
+            status: 'CANCELLED',
+            cancellationTime: new Date().toISOString(),
+            notificationsSent: request.sendNotifications ?? true,
+            notifyScope: request.notifyScope ?? 'ALL_ATTENDEES'
+          };
+          if (request.reason) {
+            response.reason = request.reason;
+          }
+          return response;
+        }
       }
 
       const service = new MockBookingService();
@@ -421,6 +438,21 @@ describe('Booking Types', () => {
         validateBookingRequest(_request: IBookingRequest): boolean {
           return true;
         }
+
+        async cancelBooking(request: ICancelBookingRequest): Promise<ICancelBookingResponse> {
+          const response: ICancelBookingResponse = {
+            success: true,
+            bookingId: typeof request.bookingId === 'number' ? request.bookingId : parseInt(request.bookingId.toString()),
+            status: 'CANCELLED',
+            cancellationTime: new Date().toISOString(),
+            notificationsSent: request.sendNotifications ?? true,
+            notifyScope: request.notifyScope ?? 'ALL_ATTENDEES'
+          };
+          if (request.reason) {
+            response.reason = request.reason;
+          }
+          return response;
+        }
       }
 
       const service = new TestBookingService();
@@ -436,6 +468,296 @@ describe('Booking Types', () => {
       expect(formatted.ownerIsAttendee).toBe(false);
       expect(formatted.source).toBe('mcp-server');
       expect(formatted.owner.id).toBe(1);
+    });
+  });
+
+  describe('ICancelBookingRequest interface', () => {
+    it('should define correct cancel booking request structure with required fields', () => {
+      const request: ICancelBookingRequest = {
+        bookingId: 12345
+      };
+
+      expect(request).toHaveProperty('bookingId');
+      expect(typeof request.bookingId).toBe('number');
+    });
+
+    it('should handle string booking IDs', () => {
+      const request: ICancelBookingRequest = {
+        bookingId: "12345"
+      };
+
+      expect(request.bookingId).toBe("12345");
+      expect(typeof request.bookingId).toBe('string');
+    });
+
+    it('should support all optional parameters', () => {
+      const request: ICancelBookingRequest = {
+        bookingId: 12345,
+        notifyScope: 'ALL_ATTENDEES',
+        sendNotifications: true,
+        reason: 'Meeting cancelled due to schedule conflict'
+      };
+
+      expect(request.notifyScope).toBe('ALL_ATTENDEES');
+      expect(request.sendNotifications).toBe(true);
+      expect(request.reason).toBe('Meeting cancelled due to schedule conflict');
+    });
+
+    it('should support all notifyScope values', () => {
+      const requests: ICancelBookingRequest[] = [
+        { bookingId: 1, notifyScope: 'ALL_ATTENDEES' },
+        { bookingId: 2, notifyScope: 'OWNER_ONLY' },
+        { bookingId: 3, notifyScope: 'NONE' }
+      ];
+
+      requests.forEach(request => {
+        expect(['ALL_ATTENDEES', 'OWNER_ONLY', 'NONE']).toContain(request.notifyScope);
+      });
+    });
+
+    it('should handle boolean sendNotifications', () => {
+      const requestTrue: ICancelBookingRequest = {
+        bookingId: 1,
+        sendNotifications: true
+      };
+
+      const requestFalse: ICancelBookingRequest = {
+        bookingId: 2,
+        sendNotifications: false
+      };
+
+      expect(requestTrue.sendNotifications).toBe(true);
+      expect(requestFalse.sendNotifications).toBe(false);
+    });
+
+    it('should allow optional reason field', () => {
+      const withReason: ICancelBookingRequest = {
+        bookingId: 1,
+        reason: 'Emergency cancellation'
+      };
+
+      const withoutReason: ICancelBookingRequest = {
+        bookingId: 2
+      };
+
+      expect(withReason.reason).toBe('Emergency cancellation');
+      expect(withoutReason.reason).toBeUndefined();
+    });
+  });
+
+  describe('ICancelBookingResponse interface', () => {
+    it('should define correct cancel booking response structure with required fields', () => {
+      const response: ICancelBookingResponse = {
+        success: true,
+        bookingId: 12345,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T10:30:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES'
+      };
+
+      expect(response).toHaveProperty('success');
+      expect(response).toHaveProperty('bookingId');
+      expect(response).toHaveProperty('status');
+      expect(response).toHaveProperty('cancellationTime');
+      expect(response).toHaveProperty('notificationsSent');
+      expect(response).toHaveProperty('notifyScope');
+
+      expect(typeof response.success).toBe('boolean');
+      expect(typeof response.bookingId).toBe('number');
+      expect(typeof response.status).toBe('string');
+      expect(typeof response.cancellationTime).toBe('string');
+      expect(typeof response.notificationsSent).toBe('boolean');
+      expect(typeof response.notifyScope).toBe('string');
+    });
+
+    it('should handle success and failure responses', () => {
+      const successResponse: ICancelBookingResponse = {
+        success: true,
+        bookingId: 12345,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T10:30:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES'
+      };
+
+      const failureResponse: ICancelBookingResponse = {
+        success: false,
+        bookingId: 12345,
+        status: 'FAILED',
+        cancellationTime: '2024-01-15T10:30:00.000Z',
+        notificationsSent: false,
+        notifyScope: 'NONE'
+      };
+
+      expect(successResponse.success).toBe(true);
+      expect(failureResponse.success).toBe(false);
+    });
+
+    it('should support optional reason field', () => {
+      const withReason: ICancelBookingResponse = {
+        success: true,
+        bookingId: 12345,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T10:30:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES',
+        reason: 'Schedule conflict'
+      };
+
+      const withoutReason: ICancelBookingResponse = {
+        success: true,
+        bookingId: 12345,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T10:30:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES'
+      };
+
+      expect(withReason.reason).toBe('Schedule conflict');
+      expect(withoutReason.reason).toBeUndefined();
+    });
+
+    it('should support optional originalBooking field', () => {
+      const withOriginalBooking: ICancelBookingResponse = {
+        success: true,
+        bookingId: 12345,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T10:30:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES',
+        originalBooking: {
+          locationId: 100001,
+          locationName: 'Conference Room A',
+          timeFrom: '2024-01-15T14:00:00.000',
+          timeTo: '2024-01-15T15:00:00.000',
+          attendeeCount: 3,
+          owner: 'john.doe@company.com'
+        }
+      };
+
+      const withoutOriginalBooking: ICancelBookingResponse = {
+        success: true,
+        bookingId: 12345,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T10:30:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES'
+      };
+
+      expect(withOriginalBooking.originalBooking).toBeDefined();
+      expect(withOriginalBooking.originalBooking?.locationId).toBe(100001);
+      expect(withOriginalBooking.originalBooking?.locationName).toBe('Conference Room A');
+      expect(withoutOriginalBooking.originalBooking).toBeUndefined();
+    });
+
+    it('should handle originalBooking with optional fields', () => {
+      const minimalOriginalBooking: ICancelBookingResponse = {
+        success: true,
+        bookingId: 12345,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T10:30:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES',
+        originalBooking: {
+          locationId: 100001,
+          timeFrom: '2024-01-15T14:00:00.000',
+          timeTo: '2024-01-15T15:00:00.000'
+        }
+      };
+
+      expect(minimalOriginalBooking.originalBooking?.locationId).toBe(100001);
+      expect(minimalOriginalBooking.originalBooking?.locationName).toBeUndefined();
+      expect(minimalOriginalBooking.originalBooking?.attendeeCount).toBeUndefined();
+      expect(minimalOriginalBooking.originalBooking?.owner).toBeUndefined();
+    });
+
+    it('should handle ISO 8601 timestamp format', () => {
+      const response: ICancelBookingResponse = {
+        success: true,
+        bookingId: 12345,
+        status: 'CANCELLED',
+        cancellationTime: '2024-01-15T10:30:00.000Z',
+        notificationsSent: true,
+        notifyScope: 'ALL_ATTENDEES'
+      };
+
+      const timestamp = new Date(response.cancellationTime);
+      expect(timestamp).toBeInstanceOf(Date);
+      expect(timestamp.getTime()).toBeGreaterThan(0);
+    });
+  });
+
+  describe('IBookingService interface extension', () => {
+    it('should support optional cancelBooking method', () => {
+      class TestServiceWithCancel implements IBookingService {
+        async createBooking(_request: IBookingRequest): Promise<IBookingResponse> {
+          throw new Error('Not implemented for test');
+        }
+
+        async formatBookingRequest(_request: Partial<IBookingRequest>): Promise<IBookingRequest> {
+          throw new Error('Not implemented for test');
+        }
+
+        validateBookingRequest(_request: IBookingRequest): boolean {
+          return true;
+        }
+
+        async cancelBooking(request: ICancelBookingRequest): Promise<ICancelBookingResponse> {
+          const response: ICancelBookingResponse = {
+            success: true,
+            bookingId: typeof request.bookingId === 'string' ? parseInt(request.bookingId) : request.bookingId,
+            status: 'CANCELLED',
+            cancellationTime: new Date().toISOString(),
+            notificationsSent: request.sendNotifications ?? true,
+            notifyScope: request.notifyScope ?? 'ALL_ATTENDEES'
+          };
+          
+          if (request.reason) {
+            response.reason = request.reason;
+          }
+          
+          return response;
+        }
+      }
+
+      const service = new TestServiceWithCancel();
+      expect(service.cancelBooking).toBeDefined();
+      expect(typeof service.cancelBooking).toBe('function');
+    });
+
+    it('should require cancelBooking method in all services', () => {
+      class TestServiceWithoutCancel implements IBookingService {
+        async createBooking(_request: IBookingRequest): Promise<IBookingResponse> {
+          throw new Error('Not implemented for test');
+        }
+
+        async formatBookingRequest(_request: Partial<IBookingRequest>): Promise<IBookingRequest> {
+          throw new Error('Not implemented for test');
+        }
+
+        validateBookingRequest(_request: IBookingRequest): boolean {
+          return true;
+        }
+
+        async cancelBooking(request: ICancelBookingRequest): Promise<ICancelBookingResponse> {
+          const response: ICancelBookingResponse = {
+            success: true,
+            bookingId: typeof request.bookingId === 'number' ? request.bookingId : parseInt(request.bookingId.toString()),
+            status: 'CANCELLED',
+            cancellationTime: new Date().toISOString(),
+            notificationsSent: request.sendNotifications ?? true,
+            notifyScope: request.notifyScope ?? 'ALL_ATTENDEES'
+          };
+          if (request.reason) {
+            response.reason = request.reason;
+          }
+          return response;
+        }
+      }
+
+      const service = new TestServiceWithoutCancel();
+      expect(typeof service.cancelBooking).toBe('function');
     });
   });
 });

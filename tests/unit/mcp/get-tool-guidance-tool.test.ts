@@ -232,6 +232,58 @@ describe('get_tool_guidance MCP Tool', () => {
       const guidance = JSON.parse(result.content[0].text);
       expect(guidance).not.toHaveProperty('recommendation');
     });
+
+    it('should recognize cancellation intents and provide appropriate recommendations', async () => {
+      const handleGetToolGuidance = (mcpServer as any).handleGetToolGuidance;
+      
+      // Test "cancel booking" intent
+      const result1 = await handleGetToolGuidance.call(mcpServer, {
+        intent: 'I need to cancel booking ID 12345'
+      });
+      const guidance1 = JSON.parse(result1.content[0].text);
+      expect(guidance1).toHaveProperty('recommendation');
+      expect(guidance1.recommendation.primaryTool).toBe('matrix_booking_cancel_booking');
+      expect(guidance1.recommendation.matchedPhrase).toBe('cancel booking');
+      expect(guidance1.recommendation.supportingTools).toContain('get_user_bookings');
+      
+      // Test "cancel my booking" intent
+      const result2 = await handleGetToolGuidance.call(mcpServer, {
+        intent: 'cancel my booking for tomorrow'
+      });
+      const guidance2 = JSON.parse(result2.content[0].text);
+      expect(guidance2).toHaveProperty('recommendation');
+      expect(guidance2.recommendation.primaryTool).toBe('get_user_bookings');
+      expect(guidance2.recommendation.matchedPhrase).toBe('cancel my booking');
+      expect(guidance2.recommendation.supportingTools).toContain('matrix_booking_cancel_booking');
+      
+      // Test "remove booking" intent
+      const result3 = await handleGetToolGuidance.call(mcpServer, {
+        intent: 'I want to remove booking 54321'
+      });
+      const guidance3 = JSON.parse(result3.content[0].text);
+      expect(guidance3).toHaveProperty('recommendation');
+      expect(guidance3.recommendation.primaryTool).toBe('matrix_booking_cancel_booking');
+      expect(guidance3.recommendation.matchedPhrase).toBe('remove booking');
+      expect(guidance3.recommendation.supportingTools).toContain('get_user_bookings');
+    });
+
+    it('should handle cancellation intent variations (case insensitive)', async () => {
+      const handleGetToolGuidance = (mcpServer as any).handleGetToolGuidance;
+      
+      // Test uppercase
+      const result1 = await handleGetToolGuidance.call(mcpServer, {
+        intent: 'CANCEL MY BOOKING FOR FRIDAY'
+      });
+      const guidance1 = JSON.parse(result1.content[0].text);
+      expect(guidance1.recommendation.primaryTool).toBe('get_user_bookings');
+      
+      // Test mixed case
+      const result2 = await handleGetToolGuidance.call(mcpServer, {
+        intent: 'Cancel Booking 12345'
+      });
+      const guidance2 = JSON.parse(result2.content[0].text);
+      expect(guidance2.recommendation.primaryTool).toBe('matrix_booking_cancel_booking');
+    });
   });
 
   describe('Troubleshooting Support', () => {
@@ -389,6 +441,80 @@ describe('get_tool_guidance MCP Tool', () => {
       expect(guidance.intentMapping['book a room'].supportingTools).toContain('matrix_booking_create_booking');
       expect(guidance.intentMapping['create booking'].supportingTools).toContain('matrix_booking_create_booking');
       expect(guidance.intentMapping['reserve space'].supportingTools).toContain('matrix_booking_create_booking');
+    });
+
+    it('should recommend correct workflow for booking cancellation', async () => {
+      const handleGetToolGuidance = (mcpServer as any).handleGetToolGuidance;
+      const result = await handleGetToolGuidance.call(mcpServer, {});
+
+      const guidance = JSON.parse(result.content[0].text);
+      
+      // Cancellation intents should be properly mapped
+      expect(guidance.intentMapping).toHaveProperty('cancel booking');
+      expect(guidance.intentMapping).toHaveProperty('cancel my booking');
+      expect(guidance.intentMapping).toHaveProperty('remove booking');
+      
+      // Direct cancellation should use cancel booking tool
+      expect(guidance.intentMapping['cancel booking'].primaryTool).toBe('matrix_booking_cancel_booking');
+      expect(guidance.intentMapping['cancel booking'].supportingTools).toContain('get_user_bookings');
+      expect(guidance.intentMapping['cancel booking'].supportingTools).toContain('matrix_booking_get_location');
+      expect(guidance.intentMapping['cancel booking'].avoidTools).toContain('matrix_booking_create_booking');
+      expect(guidance.intentMapping['cancel booking'].avoidTools).toContain('matrix_booking_check_availability');
+      
+      // User-centric cancellation should start with finding bookings
+      expect(guidance.intentMapping['cancel my booking'].primaryTool).toBe('get_user_bookings');
+      expect(guidance.intentMapping['cancel my booking'].supportingTools).toContain('matrix_booking_cancel_booking');
+      expect(guidance.intentMapping['cancel my booking'].avoidTools).toContain('matrix_booking_create_booking');
+      
+      // Remove booking should use cancel booking tool
+      expect(guidance.intentMapping['remove booking'].primaryTool).toBe('matrix_booking_cancel_booking');
+      expect(guidance.intentMapping['remove booking'].supportingTools).toContain('get_user_bookings');
+      expect(guidance.intentMapping['remove booking'].avoidTools).toContain('matrix_booking_create_booking');
+    });
+
+    it('should include cancellation workflow in scenario guidance', async () => {
+      const handleGetToolGuidance = (mcpServer as any).handleGetToolGuidance;
+      const result = await handleGetToolGuidance.call(mcpServer, {});
+
+      const guidance = JSON.parse(result.content[0].text);
+      
+      // Should include cancellation workflow scenario
+      const cancellationWorkflow = guidance.workflows.find((w: any) => w.scenario === "User wants to cancel a booking");
+      expect(cancellationWorkflow).toBeDefined();
+      expect(cancellationWorkflow.description).toContain('Complete workflow for cancelling existing bookings');
+      
+      // Verify workflow steps
+      expect(cancellationWorkflow.tools).toHaveLength(3);
+      
+      // Step 1: Find booking ID
+      expect(cancellationWorkflow.tools[0].tool).toBe('get_user_bookings');
+      expect(cancellationWorkflow.tools[0].order).toBe(1);
+      expect(cancellationWorkflow.tools[0].purpose).toContain('Find the booking ID to cancel');
+      expect(cancellationWorkflow.tools[0].required).toBe(true);
+      
+      // Step 2: Cancel booking
+      expect(cancellationWorkflow.tools[1].tool).toBe('matrix_booking_cancel_booking');
+      expect(cancellationWorkflow.tools[1].order).toBe(2);
+      expect(cancellationWorkflow.tools[1].purpose).toContain('Cancel the identified booking');
+      expect(cancellationWorkflow.tools[1].required).toBe(true);
+      
+      // Step 3: Verify cancellation
+      expect(cancellationWorkflow.tools[2].tool).toBe('get_user_bookings');
+      expect(cancellationWorkflow.tools[2].order).toBe(3);
+      expect(cancellationWorkflow.tools[2].purpose).toContain('Verify the booking was successfully cancelled');
+      expect(cancellationWorkflow.tools[2].required).toBe(false);
+    });
+
+    it('should include cancellation guidance in tool selection', async () => {
+      const handleGetToolGuidance = (mcpServer as any).handleGetToolGuidance;
+      const result = await handleGetToolGuidance.call(mcpServer, {});
+
+      const guidance = JSON.parse(result.content[0].text);
+      
+      // Should have specific cancellation tool selection guidance
+      expect(guidance.toolSelection).toHaveProperty('User wants to cancel existing booking');
+      expect(guidance.toolSelection['User wants to cancel existing booking']).toContain('First use get_user_bookings to find booking ID');
+      expect(guidance.toolSelection['User wants to cancel existing booking']).toContain('then use matrix_booking_cancel_booking');
     });
   });
 

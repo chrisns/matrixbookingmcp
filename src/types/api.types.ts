@@ -5,7 +5,7 @@
 
 import { ICredentials } from './authentication.types.js';
 import { IAvailabilityRequest, IAvailabilityResponse } from './availability.types.js';
-import { IBookingRequest, IBookingResponse } from './booking.types.js';
+import { IBookingRequest, IBookingResponse, ICancelBookingRequest, ICancelBookingResponse } from './booking.types.js';
 import { ILocation, ILocationHierarchyResponse, ILocationQueryRequest } from './location.types.js';
 import { ICurrentUserResponse, IUserBookingsRequest, IUserBookingsResponse } from './user.types.js';
 import { IOrganizationResponse } from './organization.types.js';
@@ -36,6 +36,9 @@ export interface IMatrixAPIClient {
   getAllBookings(credentials: ICredentials): Promise<IUserBookingsResponse>;
   getLocationHierarchy(request: ILocationQueryRequest, credentials: ICredentials): Promise<ILocationHierarchyResponse>;
   getOrganization(organizationId: number, credentials: ICredentials): Promise<IOrganizationResponse>;
+  
+  // Cancel booking endpoint
+  cancelBooking(request: ICancelBookingRequest, credentials: ICredentials): Promise<ICancelBookingResponse>;
   
   // Core request method
   makeRequest<T>(request: IAPIRequest): Promise<IAPIResponse<T>>;

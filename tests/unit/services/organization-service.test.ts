@@ -78,6 +78,7 @@ describe('OrganizationService', () => {
       getAllBookings: vi.fn(),
       getLocationHierarchy: vi.fn(),
       getOrganization: vi.fn(),
+      cancelBooking: vi.fn(),
       makeRequest: vi.fn()
     };
 

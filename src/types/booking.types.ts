@@ -73,8 +73,34 @@ export interface IBookingResponse {
   hasEnded: boolean;
 }
 
+export interface ICancelBookingRequest {
+  bookingId: string | number;
+  notifyScope?: 'ALL_ATTENDEES' | 'OWNER_ONLY' | 'NONE';
+  sendNotifications?: boolean;
+  reason?: string;
+}
+
+export interface ICancelBookingResponse {
+  success: boolean;
+  bookingId: number;
+  status: string;
+  cancellationTime: string;
+  notificationsSent: boolean;
+  notifyScope: string;
+  reason?: string;
+  originalBooking?: {
+    locationId: number;
+    locationName?: string;
+    timeFrom: string;
+    timeTo: string;
+    attendeeCount?: number;
+    owner?: string;
+  };
+}
+
 export interface IBookingService {
   createBooking(_request: IBookingRequest): Promise<IBookingResponse>;
   formatBookingRequest(_request: Partial<IBookingRequest>): Promise<IBookingRequest>;
   validateBookingRequest(_request: IBookingRequest): boolean;
+  cancelBooking(_request: ICancelBookingRequest): Promise<ICancelBookingResponse>;
 }
