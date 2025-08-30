@@ -1,4 +1,4 @@
-import { IAuthenticationManager, ICredentials, IUserProfile } from '../types/authentication.types.js';
+import { IAuthenticationManager, ICredentials, IUserProfile } from '../types/index.js';
 import { IConfigurationManager } from '../config/config-manager.js';
 
 export class AuthenticationManager implements IAuthenticationManager {

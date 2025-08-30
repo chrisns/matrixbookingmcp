@@ -7,13 +7,18 @@ import {
 import { ConfigurationManager } from '../config/index.js';
 import { AuthenticationManager } from '../auth/index.js';
 import { MatrixAPIClient } from '../api/index.js';
-import { AvailabilityService } from '../services/availability-service.js';
-import { BookingService } from '../services/booking-service.js';
-import { LocationService } from '../services/location-service.js';
-import { OrganizationService } from '../services/organization-service.js';
-import { UserService } from '../services/user-service.js';
-import { IFacility } from '../types/facility.types.js';
-import { ILocation, ILocationQueryRequest } from '../types/location.types.js';
+import { 
+  AvailabilityService,
+  BookingService,
+  LocationService,
+  OrganizationService,
+  UserService
+} from '../services/index.js';
+import { 
+  IFacility,
+  ILocation, 
+  ILocationQueryRequest 
+} from '../types/index.js';
 
 const MAX_RESULTS = 50;
 
@@ -591,6 +596,83 @@ export class MatrixBookingMCPServer {
     }
   }
 
+  private parseLocationSearchTerm(name: string): {
+    searchTerm: string;
+    isRoom: boolean;
+    isDesk: boolean;
+    isDeskBank: boolean;
+    patterns: { roomPattern: RegExp; deskPattern: RegExp; deskBankPattern: RegExp };
+  } {
+    const searchTerm = name.trim().replace(/^(room|desk)\s+/i, '').trim();
+    
+    // Pattern recognition for different location types
+    const roomPattern = /^(\d{3,4})$/;  // 3-4 digit room numbers like 701, 711
+    const deskPattern = /^(\d{1,2})-([A-Z])$/i;  // Desk IDs like 37-A, 37-D
+    const deskBankPattern = /^(\d{1,2})$/;  // 1-2 digit desk bank numbers
+    
+    return {
+      searchTerm,
+      isRoom: roomPattern.test(searchTerm),
+      isDesk: deskPattern.test(searchTerm),
+      isDeskBank: deskBankPattern.test(searchTerm),
+      patterns: { roomPattern, deskPattern, deskBankPattern }
+    };
+  }
+
+  private determineSearchKind(searchTerm: string, searchType: string): {
+    kind: string | undefined;
+    isRoom: boolean;
+    isDesk: boolean;
+  } {
+    const { isRoom, isDesk, isDeskBank } = this.parseLocationSearchTerm(searchTerm);
+    
+    if (searchType === 'room' || isRoom) {
+      return { kind: 'ROOM', isRoom: true, isDesk: false };
+    } else if (searchType === 'desk' || isDesk) {
+      return { kind: 'DESK', isRoom: false, isDesk: true };
+    } else if (isDeskBank && searchType !== 'room') {
+      return { kind: 'DESK_BANK', isRoom: false, isDesk: false };
+    } else if (searchType === 'any') {
+      return { kind: 'ROOM,DESK', isRoom: false, isDesk: false };
+    }
+    return { kind: undefined, isRoom: false, isDesk: false };
+  }
+
+  private matchLocations(locations: ILocation[], searchTerm: string, isDesk: boolean): {
+    exactMatches: ILocation[];
+    partialMatches: ILocation[];
+  } {
+    const exactMatches: ILocation[] = [];
+    const partialMatches: ILocation[] = [];
+    const { patterns } = this.parseLocationSearchTerm(searchTerm);
+    
+    for (const location of locations) {
+      const locationName = location.name || '';
+      
+      // Check for exact match (case-insensitive)
+      if (locationName.toLowerCase() === searchTerm.toLowerCase()) {
+        exactMatches.push(location);
+      }
+      // Check for partial match
+      else if (locationName.toLowerCase().includes(searchTerm.toLowerCase())) {
+        partialMatches.push(location);
+      }
+      // For desk searches, also check if it matches the pattern
+      else if (isDesk && patterns.deskPattern.test(locationName)) {
+        const searchMatch = searchTerm.match(patterns.deskPattern);
+        const locationMatch = locationName.match(patterns.deskPattern);
+        if (searchMatch && locationMatch && 
+            searchMatch[1] === locationMatch[1] && 
+            searchMatch[2] && locationMatch[2] &&
+            searchMatch[2].toUpperCase() === locationMatch[2].toUpperCase()) {
+          exactMatches.push(location);
+        }
+      }
+    }
+    
+    return { exactMatches, partialMatches };
+  }
+
   private async handleFindLocationByName(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
     try {
       const name = args['name'] as string;
@@ -606,31 +688,11 @@ export class MatrixBookingMCPServer {
         };
       }
 
-      // Clean up the search term
-      const searchTerm = name.trim().replace(/^(room|desk)\s+/i, '').trim();
+      // Parse and analyze the search term
+      const { searchTerm } = this.parseLocationSearchTerm(name);
       
-      // Pattern recognition for different location types
-      const roomPattern = /^(\d{3,4})$/;  // 3-4 digit room numbers like 701, 711
-      const deskPattern = /^(\d{1,2})-([A-Z])$/i;  // Desk IDs like 37-A, 37-D
-      const deskBankPattern = /^(\d{1,2})$/;  // 1-2 digit desk bank numbers
-      
-      // Determine search kind based on pattern or explicit type
-      let searchKind: string | undefined;
-      let isRoom = false;
-      let isDesk = false;
-      
-      if (searchType === 'room' || roomPattern.test(searchTerm)) {
-        searchKind = 'ROOM';
-        isRoom = true;
-      } else if (searchType === 'desk' || deskPattern.test(searchTerm)) {
-        searchKind = 'DESK';
-        isDesk = true;
-      } else if (deskBankPattern.test(searchTerm) && searchType !== 'room') {
-        searchKind = 'DESK_BANK';
-      } else if (searchType === 'any') {
-        // For 'any' type, search both rooms and desks
-        searchKind = 'ROOM,DESK';
-      }
+      // Determine the search kind based on pattern and type
+      const { kind: searchKind, isRoom, isDesk } = this.determineSearchKind(searchTerm, searchType);
 
       // Get preferred location from config
       const config = this.configManager.getConfig();
@@ -663,32 +725,7 @@ export class MatrixBookingMCPServer {
 
       // Find exact matches first, then partial matches
       const locations = hierarchy.locations || [];
-      const exactMatches: ILocation[] = [];
-      const partialMatches: ILocation[] = [];
-      
-      for (const location of locations) {
-        const locationName = location.name || '';
-        
-        // Check for exact match (case-insensitive)
-        if (locationName.toLowerCase() === searchTerm.toLowerCase()) {
-          exactMatches.push(location);
-        }
-        // Check for partial match
-        else if (locationName.toLowerCase().includes(searchTerm.toLowerCase())) {
-          partialMatches.push(location);
-        }
-        // For desk searches, also check if it matches the pattern
-        else if (isDesk && deskPattern.test(locationName)) {
-          const searchMatch = searchTerm.match(deskPattern);
-          const locationMatch = locationName.match(deskPattern);
-          if (searchMatch && locationMatch && 
-              searchMatch[1] === locationMatch[1] && 
-              searchMatch[2] && locationMatch[2] &&
-              searchMatch[2].toUpperCase() === locationMatch[2].toUpperCase()) {
-            exactMatches.push(location);
-          }
-        }
-      }
+      const { exactMatches, partialMatches } = this.matchLocations(locations, searchTerm, isDesk);
 
       // Combine matches, preferring exact over partial
       const matches = [...exactMatches, ...partialMatches];

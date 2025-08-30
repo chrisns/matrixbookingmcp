@@ -1,10 +1,22 @@
-import { IMatrixAPIClient, IAPIRequest, IAPIResponse } from '../types/api.types.js';
-import { ICredentials } from '../types/authentication.types.js';
-import { IAvailabilityRequest, IAvailabilityResponse } from '../types/availability.types.js';
-import { IBookingRequest, IBookingResponse, ICancelBookingRequest, ICancelBookingResponse } from '../types/booking.types.js';
-import { ILocation, ILocationHierarchyResponse, ILocationQueryRequest } from '../types/location.types.js';
-import { ICurrentUserResponse, IUserBookingsRequest, IUserBookingsResponse } from '../types/user.types.js';
-import { IOrganizationResponse } from '../types/organization.types.js';
+import { 
+  IMatrixAPIClient, 
+  IAPIRequest, 
+  IAPIResponse,
+  ICredentials,
+  IAvailabilityRequest, 
+  IAvailabilityResponse,
+  IBookingRequest, 
+  IBookingResponse, 
+  ICancelBookingRequest, 
+  ICancelBookingResponse,
+  ILocation, 
+  ILocationHierarchyResponse, 
+  ILocationQueryRequest,
+  ICurrentUserResponse, 
+  IUserBookingsRequest, 
+  IUserBookingsResponse,
+  IOrganizationResponse
+} from '../types/index.js';
 import { IAuthenticationManager } from '../types/authentication.types.js';
 import { IConfigurationManager } from '../config/config-manager.js';
 import { IErrorHandler } from '../types/error.types.js';

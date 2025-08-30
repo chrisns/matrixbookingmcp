@@ -30,12 +30,3 @@ export type FacilityCategory =
   | 'catering'
   | 'technology'
   | 'comfort';
-
-
-/**
- * Facility service interface
- */
-export interface IFacilityService {
-  parseFacilities(rawFacilities: string): IFacility[];
-  getFacilitiesByCategory(category: FacilityCategory): IFacility[];
-}
