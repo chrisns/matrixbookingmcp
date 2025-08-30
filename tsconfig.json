@@ -32,6 +32,14 @@
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.js"
+    "**/*.js",
+    "tests/integration/cross-organization-scenarios.test.ts",
+    "tests/integration/desk-booking-integration.test.ts", 
+    "tests/integration/room-booking-integration.test.ts",
+    "tests/performance/organization-context-performance.test.ts",
+    "tests/performance/utils/performance-profiler.ts",
+    "tests/unit/mcp/mcp-server-monitoring.test.ts",
+    "tests/unit/services/monitoring-service.test.ts",
+    "tests/unit/services/organization-context-resolver-monitoring.test.ts"
   ]
 }

@@ -28,6 +28,7 @@ export interface IMatrixAPIClient {
   // Existing endpoints
   checkAvailability(request: IAvailabilityRequest, credentials: ICredentials): Promise<IAvailabilityResponse>;
   createBooking(request: IBookingRequest, credentials: ICredentials): Promise<IBookingResponse>;
+  getBooking(bookingId: number, credentials: ICredentials): Promise<IBookingResponse>;
   getLocation(locationId: number, credentials: ICredentials): Promise<ILocation>;
   
   // New undocumented endpoints

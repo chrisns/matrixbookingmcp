@@ -58,7 +58,7 @@ export class BookingService implements IBookingService {
       defaultOwner = request.owner;
     } else {
       try {
-        const credentials = this.authManager.getCredentials();
+        const credentials = await this.authManager.getCredentials();
         const userProfile = await this.authManager.getCurrentUser(credentials);
         defaultOwner = {
           id: userProfile.personId, // Use real personId instead of 0
@@ -67,7 +67,6 @@ export class BookingService implements IBookingService {
         };
       } catch (error) {
         // Fallback to config values if user profile fetch fails
-        console.error('Failed to get user profile, using config fallback:', error);
         defaultOwner = {
           id: 0, // This will likely cause "Person not found" error
           email: config.matrixUsername,
@@ -172,7 +171,7 @@ export class BookingService implements IBookingService {
         return { id: location.id, name: location.name };
       }
       
-      // Check if search term matches room number pattern (e.g., "701" matches "Room 701")
+      // Check if search term matches room number pattern (e.g., "101" matches "Room 101")
       if (location.name && /\b\d+\b/.test(location.name)) {
         const roomNumbers = location.name.match(/\b\d+\b/g);
         if (roomNumbers && roomNumbers.some((num: string) => num === searchTerm)) {

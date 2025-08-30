@@ -17,6 +17,7 @@
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest",
+    "test:claude-code": "node example_calls/test_claude_code_client.js",
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
     "test:performance": "vitest --run tests/performance/ --testTimeout=15000",
@@ -44,6 +45,7 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@anthropic-ai/claude-code": "^1.0.98",
     "@eslint/js": "^9.18.0",
     "@types/node": "^22.10.5",
     "@types/uuid": "^10.0.0",

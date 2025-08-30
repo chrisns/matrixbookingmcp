@@ -75,11 +75,24 @@ pnpm build
 
 ### Environment Variables
 
+#### Required Configuration
+
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
 | `MATRIX_USERNAME` | ✅ | Matrix Booking username | `john.doe@company.com` |
 | `MATRIX_PASSWORD` | ✅ | Matrix Booking password | `your-secure-password` |
 | `MATRIX_PREFERED_LOCATION` | ⚠️ | Default location ID for bookings | `12345` |
+
+#### Advanced Configuration
+
+| Variable | Required | Default | Description | Example |
+|----------|----------|---------|-------------|---------|
+| `MATRIX_API_TIMEOUT` | ❌ | `5000` | API request timeout in milliseconds | `10000` |
+| `CACHE_ENABLED` | ❌ | `true` | Enable/disable caching for performance | `false` |
+| `MATRIX_DEFAULT_DURATION_MINUTES` | ❌ | `15` | Default booking duration for point-in-time queries | `30` |
+| `MATRIX_ORGANIZATION_RESOLUTION_STRATEGY` | ❌ | `user_preferred` | How to resolve organization conflicts | `location_preferred`, `strict` |
+| `MATRIX_ENABLE_CROSS_ORG_ACCESS` | ❌ | `true` | Allow cross-organization bookings | `false` |
+| `MATRIX_ORG_VALIDATION_CACHE_TTL_MS` | ❌ | `300000` | Organization validation cache TTL (5 min) | `600000` |
 
 > **Security Note**: Never commit credentials to version control. The `.env` file is automatically excluded via `.gitignore`.
 
@@ -201,18 +214,27 @@ graph TB
     B --> E[Authentication Manager] 
     B --> F[Service Layer]
     B --> G[Input Validation]
+    B --> H[Organization Context Resolver]
     
     F --> F1[Availability Service]
     F --> F2[Booking Service]
     F --> F3[Location Service]
+    F --> F4[Organization Service]
+    F --> F5[Search Service]
     
-    D --> H[Environment Variables]
-    E --> I[Base64 Credentials]
+    H --> H1[Organization Validation]
+    H --> H2[Context Resolution]
+    H --> H3[Fallback Logic]
+    H --> H4[Validation Cache]
+    
+    D --> I[Environment Variables]
+    E --> J[Base64 Credentials]
     
     style A fill:#e1f5fe
     style B fill:#f3e5f5
     style C fill:#fff3e0
     style F fill:#e8f5e8
+    style H fill:#ffe0e6
 ```
 
 ### Core Components
@@ -220,6 +242,7 @@ graph TB
 - **MCP Server**: TypeScript implementation using `@modelcontextprotocol/sdk`
 - **Authentication Manager**: Secure credential handling with Base64 encoding
 - **Service Layer**: Business logic for availability, booking, and location operations
+- **Organization Context Resolver**: Handles organization ID mapping with fallback logic and caching
 - **Configuration Manager**: Environment-based configuration with validation
 - **Input Validation**: Comprehensive sanitization and validation system
 - **Error Handling**: Pass-through error policy preserving Matrix API responses
@@ -298,7 +321,36 @@ pnpm test:k6:timeout
 - Use 24-hour time format: `HH:MM`
 - Ensure dates are not in the past
 
-#### 5. MCP Connection Issues
+#### 5. Organization ID Mapping Issues
+
+**Symptom**: `NaN` organization ID errors or "Invalid organization context" errors
+
+**Solution**:
+- Verify your user account has proper organization access in Matrix Booking
+- Check that `MATRIX_PREFERED_LOCATION` belongs to your organization
+- Set `MATRIX_ORGANIZATION_RESOLUTION_STRATEGY=user_preferred` to prefer user's organization
+- Enable cross-org access with `MATRIX_ENABLE_CROSS_ORG_ACCESS=true` if you need multi-org support
+
+#### 6. Empty Location Hierarchy
+
+**Symptom**: `get_locations` returns empty arrays or booking searches fail
+
+**Solution**:
+- Ensure your organization has locations configured in Matrix Booking
+- Verify API authentication is working correctly
+- Check that your user has permissions to view locations
+- Try setting a different organization resolution strategy
+
+#### 7. Date Range Validation Errors
+
+**Symptom**: "Invalid date range: End time must be after start time" for identical times
+
+**Solution**:
+- The system now allows identical start/end times for point-in-time queries
+- Uses `MATRIX_DEFAULT_DURATION_MINUTES` (default: 15) to extend identical times
+- For explicit ranges, ensure end time is after start time
+
+#### 8. MCP Connection Issues
 
 **Symptom**: Tools not available in Claude Desktop
 

@@ -23,6 +23,9 @@ export interface ILocation {
   buildingName?: string;
   floorName?: string;
   bookingCategoryId?: number;
+  locations?: ILocation[]; // Nested child locations
+  parentId?: number;
+  qualifiedName?: string;
 }
 
 /**
@@ -41,6 +44,7 @@ export interface ILocationHierarchyResponse {
  */
 export interface ILocationQueryRequest {
   parentId?: number;
+  locationId?: number; // For filtering within a specific location
   kind?: string;
   includeAncestors?: boolean;
   includeFacilities?: boolean;
@@ -54,4 +58,5 @@ export interface ILocationService {
   validateLocationId(_locationId: number): boolean;
   getLocationHierarchy(request?: ILocationQueryRequest): Promise<ILocationHierarchyResponse>;
   getLocationsByKind(kind: string): Promise<ILocation[]>;
+  getLocations?(request?: ILocationQueryRequest): Promise<ILocation[]>;
 }

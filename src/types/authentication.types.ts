@@ -21,7 +21,7 @@ export interface IUserProfile {
 }
 
 export interface IAuthenticationManager {
-  getCredentials(): ICredentials;
+  getCredentials(): Promise<ICredentials>;
   encodeCredentials(_username: string, _password: string): string;
   createAuthHeader(_credentials: ICredentials): Record<string, string>;
   getCurrentUser(_credentials: ICredentials): Promise<IUserProfile>;

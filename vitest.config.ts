@@ -4,26 +4,28 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['./vitest.setup.ts'],
     coverage: {
+      enabled: true,
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'lcov', 'html'],
+      include: ['src/**/*.ts'],
       exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.config.{js,ts}',
-        '**/*.d.ts',
-        '**/index.ts',
-        'tests/mocks/**'
+        'src/**/*.d.ts',
+        'src/**/index.ts',
+        'src/types/**',
+        'src/index.ts'
       ],
       thresholds: {
-        global: {
-          statements: 90,
-          branches: 90,
-          functions: 90,
-          lines: 90
-        }
+        branches: 100,
+        functions: 100,
+        lines: 100,
+        statements: 100
       }
+    }
+  },
+  resolve: {
+    alias: {
+      '@': '/src'
     }
   }
 });

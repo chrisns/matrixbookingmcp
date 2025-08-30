@@ -8,7 +8,7 @@ export class AuthenticationManager implements IAuthenticationManager {
     this.configManager = configManager;
   }
 
-  getCredentials(): ICredentials {
+  async getCredentials(): Promise<ICredentials> {
     const config = this.configManager.getConfig();
     
     // Validate credentials exist

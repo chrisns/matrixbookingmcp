@@ -30,6 +30,8 @@ export interface IBookingRequest {
   timeFrom: string;  // ISO 8601 format
   timeTo: string;    // ISO 8601 format
   locationId: number;
+  label?: string;    // Booking description/label (required by API)
+  description?: string; // Alias for label for backwards compatibility
   attendees: IAttendee[];
   extraRequests: string[];
   bookingGroup?: IBookingGroup;

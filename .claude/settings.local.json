@@ -26,7 +26,13 @@
       "Bash(fi)",
       "Bash(done)",
       "Bash(pnpm run:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Read(/Users/cns/Library/Logs/Claude/**)",
+      "Bash(node:*)",
+      "Read(/Users/cns/Library/Application Support/Claude/**)",
+      "Read(/tmp/**)",
+      "Read(/private/tmp/**)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

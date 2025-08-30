@@ -1,26 +1,32 @@
 # Product Overview
 
-## Purpose
-Build a TypeScript MCP (Model Context Protocol) server that integrates with the Matrix Booking API to enable room booking automation and availability checking.
+## Critical Business Logic Rules
+- **ALWAYS check availability before booking** - Use `matrix_booking_check_availability` before `matrix_booking_create_booking`
+- **Default to MATRIX_PREFERED_LOCATION** from environment when location unspecified (src/config/config-manager.ts:32)
+- **Use today's date** when no date provided in requests
+- **Maintain stateless operation** - No caching or persistent state between requests
+- **Authenticate every request** with HTTP Basic Auth using MATRIX_USERNAME/MATRIX_PASSWORD
 
-## Core Features
-- Check room availability for specified dates/times
-- Book appointments automatically when availability exists
-- Query room status and scheduling information
-- Support for preferred location defaults
+## Primary MCP Tools (in order of importance)
+1. **`matrix_booking_check_availability`** - Core tool for finding available spaces
+2. **`get_user_bookings`** - Primary tool for existing booking queries 
+3. **`matrix_booking_create_booking`** - Final step in booking workflow
+4. **`matrix_booking_cancel_booking`** - Cancel existing bookings with notifications
+5. **`find_rooms_with_facilities`** - Advanced search with facility requirements
 
-## User Value Proposition
-Streamline meeting room booking through conversational AI interface, eliminating manual booking processes and reducing scheduling conflicts.
+## Tool Usage Patterns
+- **Existing bookings inquiry**: Always use `get_user_bookings`, NEVER `matrix_booking_check_availability`
+- **New booking creation**: Start with `matrix_booking_check_availability` OR `find_rooms_with_facilities`, then `matrix_booking_create_booking`
+- **Booking cancellation**: First `get_user_bookings` to find booking ID, then `matrix_booking_cancel_booking`
 
-## Key Business Logic Rules
-- Always check availability before attempting to book
-- Use today's date when no date is specified
-- Default to MATRIX_PREFERED_LOCATION from environment when location not specified
-- Maintain stateless operation - no caching or persistent state
-- All operations require valid Matrix Booking credentials
+## API Integration Specifics
+- **Base URL**: https://app.matrixbooking.com/api/v1 (src/config/config-manager.ts)
+- **Authentication**: HTTP Basic Auth with environment credentials
+- **Notification scope**: ALL_ATTENDEES for bookings
+- **Timezone**: Europe/London default
+- **Required environment variables**: MATRIX_USERNAME, MATRIX_PASSWORD, MATRIX_PREFERED_LOCATION
 
-## API Integration Requirements
-- Use Matrix Booking REST API v1 (https://app.matrixbooking.com/api/v1)
-- Implement HTTP Basic Authentication with user credentials
-- Support booking notifications to all attendees (notifyScope=ALL_ATTENDEES)
-- Handle timezone considerations (Europe/London default)
+## Error Handling Requirements
+- Provide specific tool suggestions in error responses (src/mcp/mcp-server.ts:480+)
+- Include troubleshooting steps for common authentication/network failures
+- Never guess workspace IDs - always retrieve from authenticated context

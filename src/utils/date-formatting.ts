@@ -1,54 +1,83 @@
 /**
- * Date formatting utilities for Matrix Booking API
- * 
- * IMPORTANT: Matrix API expects dates in local timezone format (no Z suffix),
- * NOT in UTC format. This is critical for correct booking times.
+ * Date formatting utilities for the Matrix booking system
  */
 
 /**
- * Formats a Date object for Matrix API consumption.
- * 
- * Matrix API expects format: "YYYY-MM-DDTHH:mm:ss.sss" (no Z suffix)
- * This represents the time in the location's local timezone.
- * 
- * @param date - The Date object to format
- * @returns Formatted date string for Matrix API
- */
-export function formatDateForMatrixAPI(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000`;
-}
-
-/**
- * Creates a Date object from Matrix API date string.
- * 
- * @param matrixDateString - Date string from Matrix API (YYYY-MM-DDTHH:mm:ss.sss)
- * @returns Date object representing the local time
- */
-export function parseDateFromMatrixAPI(matrixDateString: string): Date {
-  // Matrix API dates are in local timezone, so we parse them as such
-  // by adding 'Z' temporarily and then adjusting for timezone offset
-  const tempDate = new Date(matrixDateString + 'Z');
-  const timezoneOffset = new Date().getTimezoneOffset();
-  return new Date(tempDate.getTime() + (timezoneOffset * 60 * 1000));
-}
-
-/**
- * Gets the current date in YYYY-MM-DD format.
- * 
- * @returns Current date in YYYY-MM-DD format
+ * Get the current date as a string in YYYY-MM-DD format
+ * @returns Current date string
  */
 export function getCurrentDateString(): string {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+  const isoString = now.toISOString();
+  const datePart = isoString.split('T')[0];
+  return datePart!; // We know this will always have a value
+}
+
+/**
+ * Format a date to ISO string format for API calls
+ * @param date - Date to format
+ * @returns ISO string format
+ */
+export function formatDateForAPI(date: Date): string {
+  return date.toISOString();
+}
+
+/**
+ * Legacy alias for formatDateForAPI
+ * @param date - Date to format
+ * @returns ISO string format
+ */
+export function formatDateForMatrixAPI(date: Date): string {
+  return formatDateForAPI(date);
+}
+
+/**
+ * Parse a date from Matrix API response
+ * @param dateString - Date string from API
+ * @returns Parsed Date object
+ */
+export function parseDateFromMatrixAPI(dateString: string): Date {
+  return new Date(dateString);
+}
+
+/**
+ * Parse a date string and return a Date object
+ * @param dateString - Date string to parse
+ * @returns Parsed Date object
+ */
+export function parseDate(dateString: string): Date {
+  return new Date(dateString);
+}
+
+/**
+ * Check if a date string is valid
+ * @param dateString - Date string to validate
+ * @returns True if valid, false otherwise
+ */
+export function isValidDateString(dateString: string): boolean {
+  const date = new Date(dateString);
+  return !isNaN(date.getTime());
+}
+
+/**
+ * Format a duration in milliseconds to a human-readable string
+ * @param durationMs - Duration in milliseconds
+ * @returns Human-readable duration string
+ */
+export function formatDuration(durationMs: number): string {
+  const hours = Math.floor(durationMs / (1000 * 60 * 60));
+  const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
   
-  return `${year}-${month}-${day}`;
+  let result = '';
+  if (hours > 0) {
+    result += `${hours}h`;
+  }
+  if (minutes > 0) {
+    result += `${result ? ' ' : ''}${minutes}m`;
+  }
+  if (!result) {
+    result = '0m';
+  }
+  
+  return result;
 }

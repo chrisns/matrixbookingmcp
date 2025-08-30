@@ -38,6 +38,7 @@ export interface IUserBookingsRequest {
   status?: 'ACTIVE' | 'CANCELLED' | 'COMPLETED';
   page?: number;
   pageSize?: number;
+  bookingCategory?: number;
 }
 
 /**
@@ -46,4 +47,5 @@ export interface IUserBookingsRequest {
 export interface IUserService {
   getCurrentUser(): Promise<ICurrentUserResponse>;
   getUserBookings(request?: IUserBookingsRequest): Promise<IUserBookingsResponse>;
+  formatUserBookingsRequest?(request: unknown): IUserBookingsRequest;
 }

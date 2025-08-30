@@ -1,42 +1,70 @@
 # Project Structure
 
-## Directory Organization
-```
-/
-├── src/                    # TypeScript source code
-│   ├── server.ts          # MCP server implementation
-│   ├── matrix-api.ts      # Matrix Booking API client
-│   └── utils/             # Utility functions
-├── tests/                 # Test files
-├── dist/                  # Compiled JavaScript output
-├── .env                   # Environment configuration (not in repo)
-├── .env.example          # Environment template
-├── package.json          # Dependencies and scripts
-├── pnpm-lock.yaml        # pnpm lock file
-├── tsconfig.json         # TypeScript configuration
-└── bookexample.js        # Reference booking implementation
-```
+## Critical Directory Patterns
+1. **src/**: Main source code with layered architecture
+   - `mcp/` - MCP server implementation (entry point: `mcp-server.ts`)
+   - `api/` - Matrix API client (`matrix-api-client.ts`)
+   - `services/` - Business logic services (7 services: availability, booking, location, organization, user, search, facility)
+   - `auth/` - Authentication management (`authentication-manager.ts`)
+   - `config/` - Configuration management (`config-manager.ts`)
+   - `types/` - TypeScript type definitions (13 type modules)
+   - `validation/` - Input validation (`input-validator.ts`, `input-sanitizer.ts`)
+   - `error/` - Error handling (`error-handler.ts`)
+   - `utils/` - Utility functions (`date-formatting.ts`)
 
-## File Naming Patterns
-- Use kebab-case for file names
-- TypeScript files use .ts extension
-- Test files use .test.ts or .spec.ts suffix
-- Define TypeScript types inline within relevant files
+2. **tests/**: Comprehensive test coverage
+   - `unit/` - Unit tests mirroring src structure
+   - `integration/` - End-to-end tests
+   - `performance/` - Load and timeout tests
+   - `mocks/` - MSW handlers and test data
 
-## Key File Locations
-- **API Reference**: `bookexample.js` - Contains working booking request example
-- **Requirements**: `notes.md` - Project specifications and requirements
-- **Main Server**: `src/server.ts` - MCP server entry point
-- **API Client**: `src/matrix-api.ts` - Matrix Booking API wrapper
-- **Configuration**: `.env` - Credentials and settings (gitignored)
+## Essential File Naming Rules
+1. **Use kebab-case for all filenames**: `matrix-api-client.ts`, `booking-service.ts`
+2. **Service files end with `-service.ts`**: `availability-service.ts`, `location-service.ts`
+3. **Type files end with `.types.ts`**: `booking.types.ts`, `api.types.ts`
+4. **Test files match source structure**: `src/mcp/mcp-server.ts` → `tests/unit/mcp/mcp-server.test.ts`
+5. **Index files export modules**: Each directory has `index.ts` that re-exports module contents
 
-## MCP Server Architecture
-- Implement as stateless server responding to MCP protocol requests
-- Separate API client logic from MCP server logic
-- Define TypeScript interfaces inline within relevant files for API request/response types
-- Handle errors gracefully with appropriate MCP response formats
+## Type System Architecture
+1. **Centralized type definitions**: All types in `src/types/` with specific `.types.ts` files
+2. **Index-based exports**: `src/types/index.ts` exports all type modules
+3. **Interface naming**: Prefix with `I` (e.g., `IAvailabilityRequest`, `IBookingResponse`)
+4. **No inline types**: Define types in dedicated `.types.ts` files, not within implementation files
 
-## Git Workflow
-- Make semantic commits between development steps
-- Keep .env file out of version control
-- Include .env.example with required variable names
+## Service Layer Pattern
+1. **Service classes**: Each domain has dedicated service class (`BookingService`, `AvailabilityService`)
+2. **Constructor injection**: Services receive dependencies via constructor
+3. **API client abstraction**: All Matrix API calls go through `MatrixAPIClient`
+4. **Service exports**: Each service directory has `index.ts` exporting the service class
+
+## MCP Server Structure
+1. **Single server class**: `MatrixBookingMCPServer` in `src/mcp/mcp-server.ts`
+2. **Tool definitions**: Tools defined as private methods returning `Tool` objects
+3. **Handler separation**: Tool handlers are separate private methods
+4. **Error handling**: Consistent error response format with context and suggestions
+
+## Test Organization Rules
+1. **Mirror source structure**: Every `src/` file has corresponding test in `tests/unit/`
+2. **Test naming**: Use `.test.ts` suffix (not `.spec.ts`)
+3. **Integration tests**: End-to-end scenarios in `tests/integration/`
+4. **Mock strategy**: MSW handlers in `tests/mocks/matrix-api.handlers.ts`
+5. **Test data**: Centralized in `tests/mocks/test-data.ts`
+
+## Build and Configuration
+1. **ES Modules**: Project uses `"type": "module"` in package.json
+2. **Import extensions**: Always use `.js` extensions in imports (TypeScript compilation target)
+3. **Entry point**: `src/index.ts` is main entry point, exports all modules
+4. **Build target**: Compiles to `dist/` directory
+5. **Test framework**: Vitest (not Jest) with coverage via v8
+
+## Environment and Scripts
+1. **Required scripts**: `build`, `test`, `lint`, `typecheck` must be maintained
+2. **Performance testing**: Separate Vitest and k6 test suites
+3. **Configuration**: Use `ConfigurationManager` class, not direct env access
+4. **Dependencies**: MCP SDK, dotenv, uuid as core dependencies
+
+## Critical Files to Never Modify Structure
+- `src/index.ts` - Main entry point with module exports
+- `src/types/index.ts` - Central type exports
+- `package.json` scripts section - Build and test commands
+- Directory-level `index.ts` files - Module export patterns

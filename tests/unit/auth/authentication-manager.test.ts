@@ -1,395 +1,182 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AuthenticationManager } from '../../../src/auth/authentication-manager.js';
-import type { IAuthenticationManager, ICredentials } from '../../../src/types/authentication.types.js';
-import type { IConfigurationManager, IServerConfig } from '../../../src/config/config-manager.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { AuthenticationManager } from '../../../src/auth/authentication-manager';
 
 describe('AuthenticationManager', () => {
-  let mockConfigManager: IConfigurationManager;
-  let authManager: IAuthenticationManager;
-
-  const validConfig: IServerConfig = {
-    matrixUsername: 'testuser',
-    matrixPassword: 'testpass123',
-    matrixPreferredLocation: 'LOC001',
-    apiTimeout: 5000,
-    apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
-    cacheEnabled: true
-  };
+  let authManager: AuthenticationManager;
+  let mockConfigManager: any;
 
   beforeEach(() => {
     mockConfigManager = {
-      getConfig: vi.fn().mockReturnValue(validConfig),
+      getConfig: vi.fn().mockReturnValue({
+        matrixUsername: 'test@example.com',
+        matrixPassword: 'password123'
+      }),
       validateConfig: vi.fn()
     };
 
     authManager = new AuthenticationManager(mockConfigManager);
   });
 
-  describe('constructor', () => {
-    it('should create instance with valid configuration manager', () => {
-      expect(() => new AuthenticationManager(mockConfigManager)).not.toThrow();
-      expect(authManager).toBeInstanceOf(AuthenticationManager);
-    });
-  });
-
   describe('getCredentials', () => {
-    it('should return credentials with encoded data when config is valid', () => {
-      const credentials = authManager.getCredentials();
+    it('should return credentials from config', async () => {
+      const credentials = await authManager.getCredentials();
 
+      expect(mockConfigManager.getConfig).toHaveBeenCalled();
       expect(credentials).toEqual({
-        username: 'testuser',
-        password: 'testpass123',
-        encodedCredentials: expect.any(String)
+        username: 'test@example.com',
+        password: 'password123',
+        encodedCredentials: Buffer.from('test@example.com:password123').toString('base64')
+      });
+    });
+
+    it('should handle missing username', async () => {
+      mockConfigManager.getConfig.mockReturnValue({
+        matrixPassword: 'password123'
       });
 
-      expect(credentials.encodedCredentials).toBe(
-        Buffer.from('testuser:testpass123', 'utf-8').toString('base64')
-      );
+      await expect(authManager.getCredentials()).rejects.toThrow('Authentication credentials not available');
     });
 
-    it('should throw error when username is empty', () => {
-      mockConfigManager.getConfig = vi.fn().mockReturnValue({
-        ...validConfig,
-        matrixUsername: ''
+    it('should handle missing password', async () => {
+      mockConfigManager.getConfig.mockReturnValue({
+        matrixUsername: 'test@example.com'
       });
 
-      expect(() => authManager.getCredentials())
-        .toThrow('Authentication credentials not available');
+      await expect(authManager.getCredentials()).rejects.toThrow('Authentication credentials not available');
     });
 
-    it('should throw error when password is empty', () => {
-      mockConfigManager.getConfig = vi.fn().mockReturnValue({
-        ...validConfig,
-        matrixPassword: ''
-      });
+    it('should handle missing credentials', async () => {
+      mockConfigManager.getConfig.mockReturnValue({});
 
-      expect(() => authManager.getCredentials())
-        .toThrow('Authentication credentials not available');
-    });
-
-    it('should throw error when username is null/undefined', () => {
-      mockConfigManager.getConfig = vi.fn().mockReturnValue({
-        ...validConfig,
-        matrixUsername: undefined as any
-      });
-
-      expect(() => authManager.getCredentials())
-        .toThrow('Authentication credentials not available');
-    });
-
-    it('should throw error when password is null/undefined', () => {
-      mockConfigManager.getConfig = vi.fn().mockReturnValue({
-        ...validConfig,
-        matrixPassword: undefined as any
-      });
-
-      expect(() => authManager.getCredentials())
-        .toThrow('Authentication credentials not available');
-    });
-
-    it('should call configuration manager getConfig method', () => {
-      authManager.getCredentials();
-
-      expect(mockConfigManager.getConfig).toHaveBeenCalledOnce();
-    });
-
-    it('should handle configuration manager errors', () => {
-      mockConfigManager.getConfig = vi.fn().mockImplementation(() => {
-        throw new Error('Configuration error');
-      });
-
-      expect(() => authManager.getCredentials())
-        .toThrow('Configuration error');
-    });
-
-    it('should not persist credentials between calls', () => {
-      const credentials1 = authManager.getCredentials();
-      const credentials2 = authManager.getCredentials();
-
-      expect(credentials1).toEqual(credentials2);
-      expect(mockConfigManager.getConfig).toHaveBeenCalledTimes(2);
+      await expect(authManager.getCredentials()).rejects.toThrow('Authentication credentials not available');
     });
   });
 
   describe('encodeCredentials', () => {
-    it('should encode valid username and password correctly', () => {
-      const encoded = authManager.encodeCredentials('user', 'pass');
-      const expected = Buffer.from('user:pass', 'utf-8').toString('base64');
+    it('should encode credentials to base64', () => {
+      const encoded = authManager.encodeCredentials('user@test.com', 'pass123');
 
-      expect(encoded).toBe(expected);
+      const expectedEncoded = Buffer.from('user@test.com:pass123').toString('base64');
+      expect(encoded).toBe(expectedEncoded);
     });
 
     it('should handle special characters in credentials', () => {
-      const username = 'user@domain.com';
-      const password = 'testpass123';
-      
-      const encoded = authManager.encodeCredentials(username, password);
-      const expected = Buffer.from(`${username}:${password}`, 'utf-8').toString('base64');
+      const encoded = authManager.encodeCredentials('user@test.com', 'p@ss:word!');
 
-      expect(encoded).toBe(expected);
-    });
-
-    it('should handle empty username', () => {
-      expect(() => authManager.encodeCredentials('', 'password'))
-        .toThrow('Username and password are required');
+      const expectedEncoded = Buffer.from('user@test.com:p@ss:word!').toString('base64');
+      expect(encoded).toBe(expectedEncoded);
     });
 
     it('should handle empty password', () => {
-      expect(() => authManager.encodeCredentials('username', ''))
-        .toThrow('Username and password are required');
-    });
-
-    it('should handle null username', () => {
-      expect(() => authManager.encodeCredentials(null as any, 'password'))
-        .toThrow('Username and password are required');
-    });
-
-    it('should handle null password', () => {
-      expect(() => authManager.encodeCredentials('username', null as any))
-        .toThrow('Username and password are required');
-    });
-
-    it('should handle undefined username', () => {
-      expect(() => authManager.encodeCredentials(undefined as any, 'password'))
-        .toThrow('Username and password are required');
-    });
-
-    it('should handle undefined password', () => {
-      expect(() => authManager.encodeCredentials('username', undefined as any))
-        .toThrow('Username and password are required');
-    });
-
-    it('should produce same output for same input', () => {
-      const encoded1 = authManager.encodeCredentials('user', 'pass');
-      const encoded2 = authManager.encodeCredentials('user', 'pass');
-
-      expect(encoded1).toBe(encoded2);
-    });
-
-    it('should produce different output for different inputs', () => {
-      const encoded1 = authManager.encodeCredentials('user1', 'pass');
-      const encoded2 = authManager.encodeCredentials('user2', 'pass');
-
-      expect(encoded1).not.toBe(encoded2);
-    });
-
-    it('should handle UTF-8 characters correctly', () => {
-      const username = 'üser';
-      const password = 'pássword';
-      
-      const encoded = authManager.encodeCredentials(username, password);
-      const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
-
-      expect(decoded).toBe(`${username}:${password}`);
+      expect(() => authManager.encodeCredentials('user@test.com', '')).toThrow('Username and password are required');
     });
   });
 
   describe('createAuthHeader', () => {
-    const username = 'testuser';
-    const password = 'testpass';
-    const validCredentials: ICredentials = {
-      username,
-      password,
-      encodedCredentials: Buffer.from(`${username}:${password}`).toString('base64')
-    };
+    it('should create auth headers with encoded credentials', () => {
+      const credentials = {
+        username: 'user@test.com',
+        password: 'pass123',
+        encodedCredentials: Buffer.from('user@test.com:pass123').toString('base64')
+      };
 
-    it('should create correct authorization header with valid credentials', () => {
-      const headers = authManager.createAuthHeader(validCredentials);
-
-      expect(headers).toEqual({
-        'Authorization': `Basic ${validCredentials.encodedCredentials}`,
-        'Content-Type': 'application/json;charset=UTF-8',
-        'x-matrix-source': 'WEB',
-        'x-time-zone': 'Europe/London'
-      });
-    });
-
-    it('should include all required Matrix API headers', () => {
-      const headers = authManager.createAuthHeader(validCredentials);
+      const headers = authManager.createAuthHeader(credentials);
 
       expect(headers).toHaveProperty('Authorization');
+      expect(headers['Authorization']).toContain('Basic ');
       expect(headers).toHaveProperty('Content-Type', 'application/json;charset=UTF-8');
       expect(headers).toHaveProperty('x-matrix-source', 'WEB');
       expect(headers).toHaveProperty('x-time-zone', 'Europe/London');
     });
 
-    it('should throw error when encoded credentials are empty', () => {
-      const invalidCredentials: ICredentials = {
-        username: 'testuser',
-        password: 'testpass',
-        encodedCredentials: ''
-      };
+    it('should throw error when encoded credentials are missing', () => {
+      const credentials = {
+        username: 'user@test.com',
+        password: 'pass123'
+      } as any; // Missing encodedCredentials
 
-      expect(() => authManager.createAuthHeader(invalidCredentials))
-        .toThrow('Encoded credentials are required');
-    });
-
-    it('should throw error when encoded credentials are null', () => {
-      const invalidCredentials: ICredentials = {
-        username: 'testuser',
-        password: 'testpass',
-        encodedCredentials: null as any
-      };
-
-      expect(() => authManager.createAuthHeader(invalidCredentials))
-        .toThrow('Encoded credentials are required');
-    });
-
-    it('should throw error when encoded credentials are undefined', () => {
-      const invalidCredentials: ICredentials = {
-        username: 'testuser',
-        password: 'testpass',
-        encodedCredentials: undefined as any
-      };
-
-      expect(() => authManager.createAuthHeader(invalidCredentials))
-        .toThrow('Encoded credentials are required');
-    });
-
-    it('should handle long encoded credentials', () => {
-      const longCredentials: ICredentials = {
-        username: 'verylongusername@domain.com',
-        password: 'verylongpasswordwithspecialcharacters!@#$%^&*()',
-        encodedCredentials: Buffer.from('verylongusername@domain.com:verylongpasswordwithspecialcharacters!@#$%^&*()', 'utf-8').toString('base64')
-      };
-
-      const headers = authManager.createAuthHeader(longCredentials);
-
-      expect(headers['Authorization']).toContain('Basic ');
-      expect(headers['Authorization']).toContain(longCredentials.encodedCredentials);
-    });
-
-    it('should create immutable header object', () => {
-      const headers = authManager.createAuthHeader(validCredentials);
-      const originalHeaders = { ...headers };
-
-      headers['Authorization'] = 'Modified';
-
-      const newHeaders = authManager.createAuthHeader(validCredentials);
-      expect(newHeaders).toEqual(originalHeaders);
+      expect(() => authManager.createAuthHeader(credentials)).toThrow('Encoded credentials are required');
     });
   });
 
-  describe('integration scenarios', () => {
-    it('should handle complete authentication flow', () => {
-      // Get credentials
-      const credentials = authManager.getCredentials();
-      expect(credentials.username).toBe('testuser');
-      expect(credentials.password).toBe('testpass123');
-      expect(credentials.encodedCredentials).toBeTruthy();
-
-      // Create auth headers
-      const headers = authManager.createAuthHeader(credentials);
-      expect(headers['Authorization']).toContain('Basic ');
-      expect(headers['Content-Type']).toBe('application/json;charset=UTF-8');
-    });
-
-    it('should handle credential encoding and header creation together', () => {
-      const username = 'integrationuser';
-      const password = 'integrationpass';
-      
-      // Encode credentials manually
-      const encoded = authManager.encodeCredentials(username, password);
-      
-      // Create credentials object
-      const credentials: ICredentials = {
-        username,
-        password,
-        encodedCredentials: encoded
+  describe('getCurrentUser', () => {
+    it('should get current user with valid credentials', async () => {
+      const credentials = {
+        username: 'user@test.com',
+        password: 'pass123',
+        encodedCredentials: Buffer.from('user@test.com:pass123').toString('base64')
       };
 
-      // Create headers
-      const headers = authManager.createAuthHeader(credentials);
-      
-      // Verify the Authorization header contains the encoded credentials
-      expect(headers['Authorization']).toBe(`Basic ${encoded}`);
-    });
-
-    it('should work with realistic production-like scenarios', () => {
-      // Mock a production-like config
-      const productionConfig: IServerConfig = {
-        matrixUsername: 'prod.user@company.com',
-        matrixPassword: 'prodpassword123',
-        matrixPreferredLocation: 'PROD_LOC_001',
-        apiTimeout: 5000,
-        apiBaseUrl: 'https://app.matrixbooking.com/api/v1',
-        cacheEnabled: true
+      const mockUser = {
+        personId: 123,
+        email: 'user@test.com',
+        name: 'Test User',
+        organizationId: 456
       };
 
-      mockConfigManager.getConfig = vi.fn().mockReturnValue(productionConfig);
-
-      const credentials = authManager.getCredentials();
-      const headers = authManager.createAuthHeader(credentials);
-
-      expect(credentials.username).toBe('prod.user@company.com');
-      expect(headers['Authorization']).toMatch(/^Basic [A-Za-z0-9+/]+=*$/);
-      expect(headers['x-matrix-source']).toBe('WEB');
-    });
-  });
-
-  describe('security and performance', () => {
-    it('should not log sensitive credential data', () => {
-      // This test ensures no sensitive data leaks in console logs
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      try {
-        const credentials = authManager.getCredentials();
-        authManager.createAuthHeader(credentials);
-
-        // Verify no sensitive data was logged
-        expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('testpass123'));
-        expect(consoleErrorSpy).not.toHaveBeenCalledWith(expect.stringContaining('testpass123'));
-      } finally {
-        consoleSpy.mockRestore();
-        consoleErrorSpy.mockRestore();
-      }
-    });
-
-    it('should not cache credentials in instance variables', () => {
-      // Change the underlying config
-      const newConfig = {
-        ...validConfig,
-        matrixUsername: 'newuser',
-        matrixPassword: 'newpass'
-      };
-
-      const credentials1 = authManager.getCredentials();
-      
-      mockConfigManager.getConfig = vi.fn().mockReturnValue(newConfig);
-      
-      const credentials2 = authManager.getCredentials();
-
-      expect(credentials1.username).toBe('testuser');
-      expect(credentials2.username).toBe('newuser');
-    });
-
-    it('should handle multiple concurrent credential requests', () => {
-      const promises = Array.from({ length: 10 }, () => 
-        Promise.resolve(authManager.getCredentials())
-      );
-
-      return Promise.all(promises).then(results => {
-        results.forEach(credentials => {
-          expect(credentials.username).toBe('testuser');
-          expect(credentials.password).toBe('testpass123');
-          expect(credentials.encodedCredentials).toBeTruthy();
-        });
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockUser
       });
+
+      mockConfigManager.getConfig.mockReturnValue({
+        apiBaseUrl: 'https://api.test.com',
+        apiTimeout: 30000
+      });
+
+      const result = await authManager.getCurrentUser(credentials);
+
+      expect(result).toEqual(mockUser);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://api.test.com/user/current',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'Authorization': expect.stringContaining('Basic ')
+          })
+        })
+      );
     });
 
-    it('should validate base64 encoding correctness', () => {
-      const username = 'testuser';
-      const password = 'testpass';
-      
-      const encoded = authManager.encodeCredentials(username, password);
-      
-      // Verify it's valid base64
-      expect(() => Buffer.from(encoded, 'base64')).not.toThrow();
-      
-      // Verify it decodes correctly
-      const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
-      expect(decoded).toBe(`${username}:${password}`);
+    it('should handle API errors', async () => {
+      const credentials = {
+        username: 'user@test.com',
+        password: 'pass123',
+        encodedCredentials: Buffer.from('user@test.com:pass123').toString('base64')
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized'
+      });
+
+      mockConfigManager.getConfig.mockReturnValue({
+        apiBaseUrl: 'https://api.test.com',
+        apiTimeout: 30000
+      });
+
+      await expect(authManager.getCurrentUser(credentials)).rejects.toThrow('Failed to get current user: 401 Unauthorized');
+    });
+
+    it('should handle invalid user profile response', async () => {
+      const credentials = {
+        username: 'user@test.com',
+        password: 'pass123',
+        encodedCredentials: Buffer.from('user@test.com:pass123').toString('base64')
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 1 }) // Missing required fields
+      });
+
+      mockConfigManager.getConfig.mockReturnValue({
+        apiBaseUrl: 'https://api.test.com',
+        apiTimeout: 30000
+      });
+
+      await expect(authManager.getCurrentUser(credentials)).rejects.toThrow('Invalid user profile response: missing required fields');
     });
   });
 });

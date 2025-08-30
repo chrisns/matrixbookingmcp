@@ -12,6 +12,8 @@ export interface IServerConfig {
 export interface IConfigurationManager {
   getConfig(): IServerConfig;
   validateConfig(): void;
+  // eslint-disable-next-line no-unused-vars
+  updateConfig?(configUpdate: Partial<IServerConfig>): void;
 }
 
 export class ConfigurationManager implements IConfigurationManager {
@@ -19,7 +21,14 @@ export class ConfigurationManager implements IConfigurationManager {
 
   constructor(loadDotenv: boolean = true) {
     if (loadDotenv) {
-      config();
+      // Suppress all dotenv output by redirecting stdout temporarily
+      const originalWrite = process.stdout.write;
+      process.stdout.write = () => true;
+      try {
+        config();
+      } finally {
+        process.stdout.write = originalWrite;
+      }
     }
     this.validateConfig();
     this.serverConfig = this.loadConfig();
