@@ -49,16 +49,18 @@ export class SearchService implements ISearchService {
       }
     }
     
-    // Get all locations with facilities
-    const queryRequest: any = {
+    // Build query for location hierarchy
+    const queryRequest: Record<string, unknown> = {
       includeFacilities: true,
       includeChildren: true,
       isBookable: true
     };
+    
     if (request.parentLocationId) {
-      queryRequest.parentId = request.parentLocationId;
+      queryRequest['parentId'] = request.parentLocationId;
     }
-    const hierarchy = await this.locationService.getLocationHierarchy(queryRequest);
+    
+    const hierarchy = await this.locationService.getLocationHierarchy(queryRequest as any);
     
     let locations = hierarchy.locations || [];
     const totalLocations = locations.length;
@@ -91,13 +93,13 @@ export class SearchService implements ISearchService {
       location: ILocation;
       score: number;
       matchDetails: string[];
-      facilityInfo: any;
+      matchedFacilities: string[];
     }> = [];
     
     for (const location of locations) {
       let score = 1.0; // Base score
       const matchDetails: string[] = [];
-      let facilityInfo: any = {};
+      let matchedFacilities: string[] = [];
       
       // Check facility requirements
       if (requirements.length > 0 && location.facilities) {
@@ -106,37 +108,29 @@ export class SearchService implements ISearchService {
           requirements
         );
         
-        if (!facilityMatch.matches && request.requirements?.length > 0) {
-          // Skip if explicit requirements don't match
+        // If explicit requirements provided, skip non-matching
+        if (request.requirements && request.requirements.length > 0 && !facilityMatch.matches) {
           continue;
         }
         
         score *= facilityMatch.score;
-        matchDetails.push(...facilityMatch.details);
+        matchedFacilities = facilityMatch.matchedFacilities;
         
-        // Parse facility info
-        const { aggregated } = this.facilityParser.parseFacilities(location.facilities);
-        facilityInfo = {
-          hasScreen: aggregated.hasScreen || false,
-          screenSize: aggregated.screenSize,
-          hasAdjustableDesk: aggregated.adjustable || false,
-          deskMechanism: aggregated.mechanism,
-          hasVideoConference: aggregated.hasVideoConference || false,
-          hasWhiteboard: aggregated.hasWhiteboard || false,
-          hasPhone: aggregated.hasPhone || false,
-          hasAirConditioning: aggregated.hasAirConditioning || false,
-          hasWifi: aggregated.hasWifi || false,
-          hasPowerOutlets: aggregated.hasPowerOutlets || false,
-          isAccessible: aggregated.isAccessible || false
-        };
+        if (matchedFacilities.length > 0) {
+          matchDetails.push(`Facilities: ${matchedFacilities.join(', ')}`);
+        }
+        
+        if (facilityMatch.score < 1) {
+          matchDetails.push(`Partial match: ${Math.round(facilityMatch.score * 100)}%`);
+        }
       }
       
       // Boost score for exact capacity match
       if (capacity && location.capacity === capacity) {
         score *= 1.2;
-        matchDetails.push(`✓ Exact capacity match (${capacity})`);
+        matchDetails.push(`Exact capacity match (${capacity})`);
       } else if (capacity && location.capacity && location.capacity >= capacity) {
-        matchDetails.push(`✓ Capacity ${location.capacity} (fits ${capacity})`);
+        matchDetails.push(`Capacity ${location.capacity} (fits ${capacity})`);
       }
       
       // Add location type to match details
@@ -153,7 +147,7 @@ export class SearchService implements ISearchService {
         location,
         score,
         matchDetails,
-        facilityInfo
+        matchedFacilities
       });
     }
     
@@ -174,7 +168,12 @@ export class SearchService implements ISearchService {
         location: scoredLoc.location,
         score: scoredLoc.score,
         matchDetails: scoredLoc.matchDetails,
-        facilityInfo: scoredLoc.facilityInfo
+        facilityInfo: {
+          matchedFacilities: scoredLoc.matchedFacilities,
+          allFacilities: scoredLoc.location.facilities?.map(f => 
+            f.text || f.name || ''
+          ).filter(text => text.length > 0) || []
+        }
       };
       
       // Check availability if dates provided
@@ -188,12 +187,17 @@ export class SearchService implements ISearchService {
             bookingCategory: this.getBookingCategory(scoredLoc.location.kind)
           });
           
+          // Check if available is an array with slots
+          const isAvailable = Array.isArray(availability.available) && availability.available.length > 0;
+          
           result.availability = {
-            isAvailable: availability.available?.length > 0,
-            availableSlots: availability.available?.map(slot => ({
-              from: slot.timeFrom,
-              to: slot.timeTo
-            }))
+            isAvailable,
+            availableSlots: isAvailable && Array.isArray(availability.available) 
+              ? availability.available.map((slot: any) => ({
+                  from: slot.timeFrom || slot.from || '',
+                  to: slot.timeTo || slot.to || ''
+                }))
+              : []
           };
           
           if (result.availability.isAvailable) {
@@ -257,8 +261,8 @@ export class SearchService implements ISearchService {
       
       // Check for duration
       const hourMatch = query.match(/(\d+)\s*hour/i);
-      if (hourMatch) {
-        const hours = parseInt(hourMatch[1]);
+      if (hourMatch && hourMatch[1]) {
+        const hours = parseInt(hourMatch[1], 10);
         const endTime = new Date(now.getTime() + hours * 60 * 60 * 1000);
         dateTo = endTime.toISOString();
       } else {
@@ -290,15 +294,18 @@ export class SearchService implements ISearchService {
       }
     }
     
-    return this.searchLocationsByRequirements({
+    const searchRequest: ILocationSearchRequest = {
       requirements,
-      capacity: capacity || undefined,
-      locationKind,
-      dateFrom,
-      dateTo,
       query,
       limit: 10 // Reasonable default limit
-    });
+    };
+    
+    if (capacity) searchRequest.capacity = capacity;
+    if (locationKind) searchRequest.locationKind = locationKind;
+    if (dateFrom) searchRequest.dateFrom = dateFrom;
+    if (dateTo) searchRequest.dateTo = dateTo;
+    
+    return this.searchLocationsByRequirements(searchRequest);
   }
   
   /**

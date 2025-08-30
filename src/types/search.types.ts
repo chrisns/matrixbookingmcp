@@ -56,19 +56,10 @@ export interface ILocationSearchResult {
     }>;
   };
   
-  /** Parsed facility information */
+  /** Facility information */
   facilityInfo?: {
-    hasScreen: boolean;
-    screenSize?: number;
-    hasAdjustableDesk: boolean;
-    deskMechanism?: string;
-    hasVideoConference: boolean;
-    hasWhiteboard: boolean;
-    hasPhone: boolean;
-    hasAirConditioning: boolean;
-    hasWifi: boolean;
-    hasPowerOutlets: boolean;
-    isAccessible: boolean;
+    matchedFacilities: string[];
+    allFacilities: string[];
   };
 }
 

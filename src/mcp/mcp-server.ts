@@ -15,8 +15,8 @@ import {
   UserService
 } from '../services/index.js';
 import { SearchService } from '../services/search-service.js';
+import { FacilityParser } from '../services/facility-parser.js';
 import { 
-  IFacility,
   ILocation, 
   ILocationQueryRequest 
 } from '../types/index.js';
@@ -632,19 +632,8 @@ export class MatrixBookingMCPServer {
         }
         
         // Add facility info summary
-        if (result.facilityInfo) {
-          const facilities = [];
-          if (result.facilityInfo.hasScreen) {
-            facilities.push(`${result.facilityInfo.screenSize || ''}" screen`.trim());
-          }
-          if (result.facilityInfo.hasAdjustableDesk) {
-            facilities.push(`adjustable desk (${result.facilityInfo.deskMechanism || 'unknown'})`);
-          }
-          if (result.facilityInfo.hasVideoConference) facilities.push('video conference');
-          if (result.facilityInfo.hasWhiteboard) facilities.push('whiteboard');
-          if (facilities.length > 0) {
-            lines.push(`  Facilities: ${facilities.join(', ')}`);
-          }
+        if (result.facilityInfo && result.facilityInfo.matchedFacilities.length > 0) {
+          lines.push(`  Matched: ${result.facilityInfo.matchedFacilities.join(', ')}`);
         }
         
         return lines.join('\n');
@@ -690,32 +679,19 @@ export class MatrixBookingMCPServer {
         includeChildren: true
       });
 
-      // Extract unique facilities
-      const facilityMap = new Map<string, IFacility>();
-      const locations = hierarchy.locations || [];
+      // Use the facility parser to extract unique facilities
+      const parser = new FacilityParser();
+      const uniqueFacilities = parser.extractUniqueFacilities(hierarchy.locations || []);
       
-      for (const location of locations) {
-        if (location.facilities) {
-          for (const facility of location.facilities) {
-            if (!facilityMap.has(facility.name)) {
-              facilityMap.set(facility.name, facility);
-            }
-          }
-        }
-      }
-
-      const facilities = Array.from(facilityMap.values())
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .slice(0, MAX_RESULTS);
-
-      const text = facilities.length > 0 
-        ? facilities.map(f => `• ${f.name}`).join('\n')
+      const limited = uniqueFacilities.slice(0, MAX_RESULTS);
+      const text = limited.length > 0 
+        ? limited.map(f => `• ${f}`).join('\n')
         : 'No facilities found';
 
       return {
         content: [{
           type: 'text',
-          text: `Available facilities to search for (${facilities.length} types):\n${text}`
+          text: `Available facilities to search for (${uniqueFacilities.length} types):\n${text}\n\nUse find_location_by_requirements to search for locations with these facilities`
         }]
       };
     } catch (error) {
