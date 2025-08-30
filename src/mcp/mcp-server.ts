@@ -22,6 +22,10 @@ import {
 
 const MAX_RESULTS = 50;
 
+/**
+ * MCP Server for Matrix Booking System integration
+ * Provides tools for room/desk availability checking and booking management
+ */
 export class MatrixBookingMCPServer {
   private server: Server;
   private availabilityService: AvailabilityService;
@@ -596,6 +600,11 @@ export class MatrixBookingMCPServer {
     }
   }
 
+  /**
+   * Parse location search term and identify its type based on patterns
+   * @param name Raw search term from user
+   * @returns Parsed term with type indicators
+   */
   private parseLocationSearchTerm(name: string): {
     searchTerm: string;
     isRoom: boolean;
@@ -619,6 +628,12 @@ export class MatrixBookingMCPServer {
     };
   }
 
+  /**
+   * Determine the appropriate Matrix API search kind based on term and type
+   * @param searchTerm Cleaned search term
+   * @param searchType User-specified type (room/desk/any)
+   * @returns Search kind and type flags
+   */
   private determineSearchKind(searchTerm: string, searchType: string): {
     kind: string | undefined;
     isRoom: boolean;
@@ -638,6 +653,13 @@ export class MatrixBookingMCPServer {
     return { kind: undefined, isRoom: false, isDesk: false };
   }
 
+  /**
+   * Match locations against search term with exact and partial matching
+   * @param locations List of locations from API
+   * @param searchTerm Term to search for
+   * @param isDesk Whether searching for desks specifically
+   * @returns Categorized matches
+   */
   private matchLocations(locations: ILocation[], searchTerm: string, isDesk: boolean): {
     exactMatches: ILocation[];
     partialMatches: ILocation[];
@@ -798,6 +820,9 @@ export class MatrixBookingMCPServer {
     };
   }
 
+  /**
+   * Start the MCP server and listen for connections
+   */
   async run(): Promise<void> {
     const transport = await this.createTransport();
     await this.server.connect(transport as unknown as Parameters<typeof this.server.connect>[0]);
