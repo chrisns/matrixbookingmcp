@@ -10,6 +10,7 @@ export interface IFacility {
   id: string;
   name: string;
   category: string;
+  text?: string;
   value?: string | number | boolean;
   metadata?: Record<string, unknown>;
   parsed?: {

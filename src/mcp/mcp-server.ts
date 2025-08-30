@@ -14,11 +14,13 @@ import {
   OrganizationService,
   UserService
 } from '../services/index.js';
+import { SearchService } from '../services/search-service.js';
 import { 
   IFacility,
   ILocation, 
   ILocationQueryRequest 
 } from '../types/index.js';
+import { ILocationSearchRequest } from '../types/search.types.js';
 
 const MAX_RESULTS = 50;
 
@@ -33,6 +35,7 @@ export class MatrixBookingMCPServer {
   private locationService: LocationService;
   private organizationService: OrganizationService;
   private userService: UserService;
+  private searchService: SearchService;
   private configManager: ConfigurationManager;
 
   constructor() {
@@ -83,6 +86,11 @@ export class MatrixBookingMCPServer {
       authManager
     );
 
+    this.searchService = new SearchService(
+      this.locationService,
+      this.availabilityService
+    );
+
     this.setupHandlers();
   }
 
@@ -115,6 +123,9 @@ export class MatrixBookingMCPServer {
 
           case 'search_by_facilities':
             return await this.handleSearchByFacilities(args || {});
+          
+          case 'find_location_by_requirements':
+            return await this.handleFindLocationByRequirements(args || {});
 
           case 'list_booking_types':
             return await this.handleListBookingTypes();
@@ -207,7 +218,7 @@ export class MatrixBookingMCPServer {
       },
       {
         name: 'search_by_facilities',
-        description: 'Find rooms or desks with specific amenities/features',
+        description: '[DEPRECATED - Use find_location_by_requirements instead] Find rooms or desks with specific amenities/features',
         inputSchema: {
           type: 'object',
           properties: {
@@ -221,6 +232,44 @@ export class MatrixBookingMCPServer {
             capacity: { type: 'number', description: 'Minimum capacity needed' }
           },
           required: ['facilities']
+        }
+      },
+      {
+        name: 'find_location_by_requirements',
+        description: 'Find locations by facilities, capacity, and availability. Supports natural language queries like "desk with adjustable desk" or "room for 5 people with screen"',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { 
+              type: 'string', 
+              description: 'Natural language query (e.g., "desk with adjustable desk for tomorrow 8am-5pm")' 
+            },
+            requirements: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Specific facility requirements (e.g., ["adjustable desk", "27 inch screen"])'
+            },
+            capacity: { 
+              type: 'number', 
+              description: 'Minimum capacity/number of people' 
+            },
+            locationKind: { 
+              type: 'string', 
+              description: 'Type of location (ROOM, DESK, etc.)' 
+            },
+            dateFrom: { 
+              type: 'string', 
+              description: 'Start date/time in ISO format' 
+            },
+            dateTo: { 
+              type: 'string', 
+              description: 'End date/time in ISO format' 
+            },
+            limit: { 
+              type: 'number', 
+              description: 'Maximum results to return (default: 10)' 
+            }
+          }
         }
       },
       {
@@ -535,6 +584,85 @@ export class MatrixBookingMCPServer {
           type: 'text',
           text: `Error searching facilities: ${error instanceof Error ? error.message : 'Unknown error'}`
         }]
+      };
+    }
+  }
+
+  private async handleFindLocationByRequirements(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
+    try {
+      const request: ILocationSearchRequest = {};
+      
+      // Only add properties if they're defined
+      if (args['query']) request.query = args['query'] as string;
+      if (args['requirements']) request.requirements = args['requirements'] as string[];
+      if (args['capacity']) request.capacity = args['capacity'] as number;
+      if (args['locationKind']) request.locationKind = args['locationKind'] as string;
+      if (args['dateFrom']) request.dateFrom = args['dateFrom'] as string;
+      if (args['dateTo']) request.dateTo = args['dateTo'] as string;
+      if (args['limit']) request.limit = args['limit'] as number;
+
+      // Use the search service
+      const searchResults = await this.searchService.searchLocationsByRequirements(request);
+
+      if (searchResults.results.length === 0) {
+        return {
+          content: [{
+            type: 'text',
+            text: 'No locations found matching your requirements.'
+          }]
+        };
+      }
+
+      // Format results
+      const text = searchResults.results.map(result => {
+        const lines = [`• [${result.location.id}] ${result.location.qualifiedName || result.location.name}`];
+        
+        // Add match details
+        if (result.matchDetails.length > 0) {
+          lines.push(`  ${result.matchDetails.join('\n  ')}`);
+        }
+        
+        // Add availability info
+        if (result.availability) {
+          if (result.availability.isAvailable) {
+            lines.push(`  ✓ Available at requested time`);
+          } else {
+            lines.push(`  ✗ Not available at requested time`);
+          }
+        }
+        
+        // Add facility info summary
+        if (result.facilityInfo) {
+          const facilities = [];
+          if (result.facilityInfo.hasScreen) {
+            facilities.push(`${result.facilityInfo.screenSize || ''}" screen`.trim());
+          }
+          if (result.facilityInfo.hasAdjustableDesk) {
+            facilities.push(`adjustable desk (${result.facilityInfo.deskMechanism || 'unknown'})`);
+          }
+          if (result.facilityInfo.hasVideoConference) facilities.push('video conference');
+          if (result.facilityInfo.hasWhiteboard) facilities.push('whiteboard');
+          if (facilities.length > 0) {
+            lines.push(`  Facilities: ${facilities.join(', ')}`);
+          }
+        }
+        
+        return lines.join('\n');
+      }).join('\n\n');
+
+      return {
+        content: [{
+          type: 'text',
+          text: `Found ${searchResults.totalMatches} matching locations (showing ${searchResults.results.length}):\n\n${text}\n\nSearch completed in ${searchResults.metadata.searchTime}ms`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error searching locations: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }],
+        isError: true
       };
     }
   }
