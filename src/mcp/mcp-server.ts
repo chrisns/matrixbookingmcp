@@ -351,8 +351,30 @@ export class MatrixBookingMCPServer {
       const bookings = await this.userService.getUserBookings({});
 
       const limited = bookings.bookings.slice(0, MAX_RESULTS);
-      const text = limited.map(b => 
-        `• Location ${b.locationId} - ${new Date(b.timeFrom).toLocaleString()} to ${new Date(b.timeTo).toLocaleString()}`
+      
+      // Fetch location details for bookings that don't have locationName
+      const bookingsWithNames = await Promise.all(limited.map(async (b) => {
+        let locationName = b.locationName;
+        
+        // If locationName is not provided, try to fetch it
+        if (!locationName && b.locationId) {
+          try {
+            const location = await this.locationService.getLocation(b.locationId);
+            locationName = location.qualifiedName || location.name || `Location ${b.locationId}`;
+          } catch {
+            // If fetch fails, use fallback
+            locationName = `Location ${b.locationId}`;
+          }
+        }
+        
+        return {
+          ...b,
+          displayName: locationName || `Location ${b.locationId}`
+        };
+      }));
+      
+      const text = bookingsWithNames.map(b => 
+        `• ${b.displayName} - ${new Date(b.timeFrom).toLocaleString()} to ${new Date(b.timeTo).toLocaleString()}`
       ).join('\n');
 
       return {
