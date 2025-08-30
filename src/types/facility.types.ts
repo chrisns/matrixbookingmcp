@@ -1,7 +1,6 @@
 /**
  * Facility and search interfaces for enhanced location functionality
  */
-/* eslint-disable no-unused-vars */
 
 /**
  * Facility available at a location

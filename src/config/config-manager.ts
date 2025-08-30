@@ -23,7 +23,7 @@ export class ConfigurationManager implements IConfigurationManager {
     if (loadDotenv) {
       // Suppress all dotenv output by redirecting stdout temporarily
       const originalWrite = process.stdout.write;
-      process.stdout.write = () => true;
+      process.stdout.write = (): boolean => true;
       try {
         config();
       } finally {

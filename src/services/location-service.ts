@@ -94,6 +94,7 @@ export class LocationService implements ILocationService {
     const validationResult = this.validator.validateLocationId(locationId);
     
     if (!validationResult.isValid) {
+      // Invalid location ID - return false
     }
     
     return validationResult.isValid;

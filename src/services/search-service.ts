@@ -4,7 +4,7 @@ import {
   ILocationSearchResponse, 
   ILocationSearchResult 
 } from '../types/search.types.js';
-import { ILocation } from '../types/location.types.js';
+import { ILocation, ILocationQueryRequest } from '../types/location.types.js';
 import { ILocationService } from '../types/location.types.js';
 import { IAvailabilityService } from '../types/availability.types.js';
 import { FacilityParser } from './facility-parser.js';
@@ -60,7 +60,7 @@ export class SearchService implements ISearchService {
       queryRequest['parentId'] = request.parentLocationId;
     }
     
-    const hierarchy = await this.locationService.getLocationHierarchy(queryRequest as any);
+    const hierarchy = await this.locationService.getLocationHierarchy(queryRequest as ILocationQueryRequest);
     
     let locations = hierarchy.locations || [];
     const totalLocations = locations.length;
@@ -193,7 +193,7 @@ export class SearchService implements ISearchService {
           result.availability = {
             isAvailable,
             availableSlots: isAvailable && Array.isArray(availability.available) 
-              ? availability.available.map((slot: any) => ({
+              ? availability.available.map((slot: Record<string, string>) => ({
                   from: slot.timeFrom || slot.from || '',
                   to: slot.timeTo || slot.to || ''
                 }))
@@ -207,7 +207,7 @@ export class SearchService implements ISearchService {
             // Reduce score for unavailable locations
             result.score *= 0.5;
           }
-        } catch (error) {
+        } catch {
           // If availability check fails, don't include availability info
           result.matchDetails.push('⚠ Could not check availability');
         }

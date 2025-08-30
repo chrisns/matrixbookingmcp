@@ -65,7 +65,7 @@ export class BookingService implements IBookingService {
           email: userProfile.email,
           name: userProfile.name
         };
-      } catch (error) {
+      } catch {
         // Fallback to config values if user profile fetch fails
         defaultOwner = {
           id: 0, // This will likely cause "Person not found" error

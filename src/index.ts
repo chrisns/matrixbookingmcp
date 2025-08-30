@@ -16,17 +16,13 @@ async function startServer(): Promise<void> {
     const mcpServer = new MatrixBookingMCPServer();
     await mcpServer.run();
     
-  } catch (error) {
-    
-    if (error instanceof Error) {
-    } else {
-    }
-    
+  } catch {
+    // Error handling - exit with error code
     process.exit(1);
   }
 }
 
-startServer().catch((_error) => {
+startServer().catch(() => {
   process.exit(1);
 });
 

@@ -98,8 +98,7 @@ export class MatrixAPIClient implements IMatrixAPIClient {
    * Implement exponential backoff retry logic
    */
   private async retryWithBackoff<T>(
-    operation: () => Promise<T>,
-    _context: string
+    operation: () => Promise<T>
   ): Promise<T> {
     let lastError: Error;
     
