@@ -100,6 +100,56 @@ export interface ICancelBookingResponse {
   };
 }
 
+/**
+ * Unified booking search request interface
+ */
+export interface IBookingSearchRequest {
+  // Time range (required)
+  dateFrom: string;  // ISO 8601 or YYYY-MM-DD format
+  dateTo: string;    // ISO 8601 or YYYY-MM-DD format
+  
+  // Optional filters
+  locationId?: number;           // Specific location/desk/room
+  userId?: string;                // Search specific user's bookings
+  userEmail?: string;             // Alternative to userId
+  userName?: string;              // Search by name (partial match)
+  includeAllUsers?: boolean;      // Show all users' bookings (default: false - only your own)
+  locationKind?: 'DESK' | 'ROOM' | 'DESK_BANK';
+  bookingCategory?: number;       // Booking category ID
+  
+  // Response options
+  includeLocationDetails?: boolean;
+  includeFacilities?: boolean;
+  groupBy?: 'user' | 'location' | 'date';  // How to group results
+}
+
+/**
+ * Enhanced booking information for search results
+ */
+export interface IBookingSearchResult extends IBookingResponse {
+  location?: {
+    id: number;
+    name: string;
+    kind: string;
+    qualifiedName: string;
+    facilities?: Array<{ id: string; name: string; text?: string }>;
+  };
+}
+
+/**
+ * Search response with bookings and metadata
+ */
+export interface IBookingSearchResponse {
+  bookings: IBookingSearchResult[];
+  summary: {
+    totalBookings: number;
+    uniqueUsers: number;
+    uniqueLocations: number;
+    dateRange: { from: string; to: string };
+  };
+  groupedResults?: Record<string, IBookingSearchResult[]>;  // When groupBy is specified
+}
+
 export interface IBookingService {
   createBooking(_request: IBookingRequest): Promise<IBookingResponse>;
   formatBookingRequest(_request: Partial<IBookingRequest>): Promise<IBookingRequest>;

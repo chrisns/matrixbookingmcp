@@ -34,7 +34,7 @@ export interface IMatrixAPIClient {
   // New undocumented endpoints
   getCurrentUser(credentials: ICredentials): Promise<ICurrentUserResponse>;
   getUserBookings(request: IUserBookingsRequest, credentials: ICredentials): Promise<IUserBookingsResponse>;
-  getAllBookings(credentials: ICredentials): Promise<IUserBookingsResponse>;
+  getAllBookings(credentials: ICredentials, bookingCategory?: number, dateFrom?: string, dateTo?: string, locationId?: number): Promise<IUserBookingsResponse>;
   getLocationHierarchy(request: ILocationQueryRequest, credentials: ICredentials): Promise<ILocationHierarchyResponse>;
   getOrganization(organizationId: number, credentials: ICredentials): Promise<IOrganizationResponse>;
   

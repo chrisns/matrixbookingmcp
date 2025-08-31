@@ -12,9 +12,9 @@ describe('FacilityParser', () => {
   describe('matchesRequirements', () => {
     it('should return full match when all requirements are met', () => {
       const facilities: IFacility[] = [
-        { id: '1', text: 'Adjustable desk', name: 'Adjustable desk' },
-        { id: '2', text: 'Dual screen setup', name: 'Dual screen' },
-        { id: '3', text: 'Mechanical keyboard', name: 'Mechanical keyboard' }
+        { id: '1', text: 'Adjustable desk', name: 'Adjustable desk', category: 'equipment' },
+        { id: '2', text: 'Dual screen setup', name: 'Dual screen', category: 'equipment' },
+        { id: '3', text: 'Mechanical keyboard', name: 'Mechanical keyboard', category: 'equipment' }
       ];
       
       const requirements = ['adjustable', 'screen'];
@@ -27,8 +27,8 @@ describe('FacilityParser', () => {
     
     it('should return partial match when some requirements are met', () => {
       const facilities: IFacility[] = [
-        { id: '1', text: 'Adjustable desk', name: 'Adjustable desk' },
-        { id: '2', text: 'Phone', name: 'Phone' }
+        { id: '1', text: 'Adjustable desk', name: 'Adjustable desk', category: 'equipment' },
+        { id: '2', text: 'Phone', name: 'Phone', category: 'equipment' }
       ];
       
       const requirements = ['adjustable', 'screen', 'video'];
@@ -41,8 +41,8 @@ describe('FacilityParser', () => {
     
     it('should return no match when requirements are not met', () => {
       const facilities: IFacility[] = [
-        { id: '1', text: 'Standard desk', name: 'Standard desk' },
-        { id: '2', text: 'Chair', name: 'Chair' }
+        { id: '1', text: 'Standard desk', name: 'Standard desk', category: 'equipment' },
+        { id: '2', text: 'Chair', name: 'Chair', category: 'equipment' }
       ];
       
       const requirements = ['video', 'whiteboard'];
@@ -55,7 +55,7 @@ describe('FacilityParser', () => {
     
     it('should handle empty requirements', () => {
       const facilities: IFacility[] = [
-        { id: '1', text: 'Desk', name: 'Desk' }
+        { id: '1', text: 'Desk', name: 'Desk', category: 'equipment' }
       ];
       
       const result = parser.matchesRequirements(facilities, []);
@@ -67,9 +67,9 @@ describe('FacilityParser', () => {
     
     it('should handle facilities with missing text or name', () => {
       const facilities: IFacility[] = [
-        { id: '1', text: '', name: '' },
-        { id: '2', text: 'Screen', name: undefined as any },
-        { id: '3', text: undefined as any, name: 'Adjustable desk' }
+        { id: '1', text: '', name: '', category: 'equipment' },
+        { id: '2', text: 'Screen', name: undefined as any, category: 'equipment' },
+        { id: '3', text: undefined as any, name: 'Adjustable desk', category: 'equipment' }
       ];
       
       const requirements = ['screen', 'adjustable'];
@@ -82,8 +82,8 @@ describe('FacilityParser', () => {
     
     it('should be case insensitive', () => {
       const facilities: IFacility[] = [
-        { id: '1', text: 'SCREEN', name: 'SCREEN' },
-        { id: '2', text: 'Adjustable Desk', name: 'Adjustable Desk' }
+        { id: '1', text: 'SCREEN', name: 'SCREEN', category: 'equipment' },
+        { id: '2', text: 'Adjustable Desk', name: 'Adjustable Desk', category: 'equipment' }
       ];
       
       const requirements = ['ScReEn', 'ADJUSTABLE'];
@@ -96,8 +96,8 @@ describe('FacilityParser', () => {
     
     it('should match all facilities containing the requirement', () => {
       const facilities: IFacility[] = [
-        { id: '1', text: 'Screen and monitor', name: 'Screen and monitor' },
-        { id: '2', text: 'Dual screen', name: 'Dual screen' }
+        { id: '1', text: 'Screen and monitor', name: 'Screen and monitor', category: 'equipment' },
+        { id: '2', text: 'Dual screen', name: 'Dual screen', category: 'equipment' }
       ];
       
       const requirements = ['screen'];
@@ -270,14 +270,14 @@ describe('FacilityParser', () => {
       const locations = [
         {
           facilities: [
-            { id: '1', text: 'Screen', name: 'Screen' },
-            { id: '2', text: 'Adjustable desk', name: 'Adjustable desk' }
+            { id: '1', text: 'Screen', name: 'Screen', category: 'equipment' },
+            { id: '2', text: 'Adjustable desk', name: 'Adjustable desk', category: 'equipment' }
           ]
         },
         {
           facilities: [
-            { id: '3', text: 'Screen', name: 'Screen' },
-            { id: '4', text: 'Whiteboard', name: 'Whiteboard' }
+            { id: '3', text: 'Screen', name: 'Screen', category: 'equipment' },
+            { id: '4', text: 'Whiteboard', name: 'Whiteboard', category: 'equipment' }
           ]
         }
       ];
@@ -288,11 +288,11 @@ describe('FacilityParser', () => {
     
     it('should handle locations without facilities', () => {
       const locations = [
-        { facilities: undefined },
+        { facilities: undefined } as any,
         {},
         {
           facilities: [
-            { id: '1', text: 'Desk', name: 'Desk' }
+            { id: '1', text: 'Desk', name: 'Desk', category: 'equipment' }
           ]
         }
       ];
@@ -305,9 +305,9 @@ describe('FacilityParser', () => {
       const locations = [
         {
           facilities: [
-            { id: '1', text: 'Text version', name: 'Name version' },
-            { id: '2', text: '', name: 'Only name' },
-            { id: '3', text: undefined as any, name: 'Also only name' }
+            { id: '1', text: 'Text version', name: 'Name version', category: 'equipment' },
+            { id: '2', text: '', name: 'Only name', category: 'equipment' },
+            { id: '3', text: undefined as any, name: 'Also only name', category: 'equipment' }
           ]
         }
       ];

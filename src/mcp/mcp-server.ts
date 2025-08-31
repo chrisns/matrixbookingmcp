@@ -18,7 +18,8 @@ import { SearchService } from '../services/search-service.js';
 import { FacilityParser } from '../services/facility-parser.js';
 import { 
   ILocation, 
-  ILocationQueryRequest 
+  ILocationQueryRequest,
+  IBookingSearchRequest 
 } from '../types/index.js';
 import { ILocationSearchRequest } from '../types/search.types.js';
 
@@ -117,6 +118,9 @@ export class MatrixBookingMCPServer {
 
           case 'get_user_bookings':
             return await this.handleGetUserBookings();
+          
+          case 'search_bookings':
+            return await this.handleSearchBookings(args || {});
 
           case 'browse_locations':
             return await this.handleBrowseLocations(args || {});
@@ -203,6 +207,58 @@ export class MatrixBookingMCPServer {
             dateTo: { type: 'string', description: 'End date (ISO 8601)' },
             includeHistory: { type: 'boolean', description: 'Include past bookings' }
           }
+        }
+      },
+      {
+        name: 'search_bookings',
+        description: 'Search for bookings - your own, colleagues, or by location. Flexible search with optional filters.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            dateFrom: { 
+              type: 'string', 
+              description: 'Start date (YYYY-MM-DD or ISO 8601) - Required' 
+            },
+            dateTo: { 
+              type: 'string', 
+              description: 'End date (YYYY-MM-DD or ISO 8601) - Required' 
+            },
+            locationId: { 
+              type: 'number', 
+              description: 'Filter by specific location/desk/room ID' 
+            },
+            userName: { 
+              type: 'string', 
+              description: 'Search for specific colleague by name (partial match)' 
+            },
+            userEmail: { 
+              type: 'string', 
+              description: 'Search for specific colleague by email' 
+            },
+            includeAllUsers: { 
+              type: 'boolean', 
+              description: 'Show all users bookings, not just your own (default: false)' 
+            },
+            locationKind: { 
+              type: 'string', 
+              enum: ['DESK', 'ROOM', 'DESK_BANK'],
+              description: 'Filter by location type' 
+            },
+            includeLocationDetails: {
+              type: 'boolean',
+              description: 'Include detailed location information (default: false)'
+            },
+            includeFacilities: {
+              type: 'boolean',
+              description: 'Include facility information with locations (default: false)'
+            },
+            groupBy: {
+              type: 'string',
+              enum: ['user', 'location', 'date'],
+              description: 'Group results by user, location, or date'
+            }
+          },
+          required: ['dateFrom', 'dateTo']
         }
       },
       {
@@ -452,6 +508,116 @@ export class MatrixBookingMCPServer {
     }
   }
 
+  private async handleSearchBookings(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
+    try {
+      // Build search request from arguments
+      const searchRequest: IBookingSearchRequest = {
+        dateFrom: args['dateFrom'] as string,
+        dateTo: args['dateTo'] as string
+      };
+      
+      // Add optional fields only if they exist
+      if (args['locationId'] !== undefined) {
+        searchRequest.locationId = args['locationId'] as number;
+      }
+      if (args['userName'] !== undefined) {
+        searchRequest.userName = args['userName'] as string;
+      }
+      if (args['userEmail'] !== undefined) {
+        searchRequest.userEmail = args['userEmail'] as string;
+      }
+      if (args['includeAllUsers'] !== undefined) {
+        searchRequest.includeAllUsers = args['includeAllUsers'] as boolean;
+      }
+      if (args['locationKind'] !== undefined) {
+        searchRequest.locationKind = args['locationKind'] as 'DESK' | 'ROOM' | 'DESK_BANK';
+      }
+      if (args['includeLocationDetails'] !== undefined) {
+        searchRequest.includeLocationDetails = args['includeLocationDetails'] as boolean;
+      }
+      if (args['includeFacilities'] !== undefined) {
+        searchRequest.includeFacilities = args['includeFacilities'] as boolean;
+      }
+      if (args['groupBy'] !== undefined) {
+        searchRequest.groupBy = args['groupBy'] as 'user' | 'location' | 'date';
+      }
+      
+      // Call the booking service search method
+      const searchResults = await this.bookingService.searchBookings(searchRequest);
+      
+      // Format the response based on grouping
+      let text = '';
+      
+      if (searchRequest.groupBy && searchResults.groupedResults) {
+        // Format grouped results
+        const groups = Object.entries(searchResults.groupedResults);
+        for (const [groupName, bookings] of groups) {
+          text += `\n📍 ${groupName} (${bookings.length} bookings):\n`;
+          for (const booking of bookings) {
+            const timeFrom = new Date(booking.timeFrom).toLocaleString();
+            const timeTo = new Date(booking.timeTo).toLocaleString();
+            const location = booking.location?.qualifiedName || booking.locationName || `Location ${booking.locationId}`;
+            const owner = booking.owner?.name || booking.owner?.email || 'Unknown';
+            
+            if (searchRequest.includeAllUsers) {
+              text += `  • ${owner} - ${location}\n    ${timeFrom} to ${timeTo}\n`;
+            } else {
+              text += `  • ${location} - ${timeFrom} to ${timeTo}\n`;
+            }
+            
+            if (searchRequest.includeFacilities && booking.location?.facilities) {
+              const facilities = booking.location.facilities.map(f => f.text || f.name).join(', ');
+              if (facilities) {
+                text += `    Facilities: ${facilities}\n`;
+              }
+            }
+          }
+        }
+      } else {
+        // Format flat results
+        text = searchResults.bookings.map(booking => {
+          const timeFrom = new Date(booking.timeFrom).toLocaleString();
+          const timeTo = new Date(booking.timeTo).toLocaleString();
+          const location = booking.location?.qualifiedName || booking.locationName || `Location ${booking.locationId}`;
+          const owner = booking.owner?.name || booking.owner?.email || 'Unknown';
+          
+          let line = '• ';
+          if (searchRequest.includeAllUsers) {
+            line += `${owner} - `;
+          }
+          line += `${location} - ${timeFrom} to ${timeTo}`;
+          
+          if (searchRequest.includeFacilities && booking.location?.facilities) {
+            const facilities = booking.location.facilities.map(f => f.text || f.name).join(', ');
+            if (facilities) {
+              line += `\n  Facilities: ${facilities}`;
+            }
+          }
+          
+          return line;
+        }).join('\n');
+      }
+      
+      // Add summary
+      const summary = `\n\n📊 Summary: ${searchResults.summary.totalBookings} bookings, ${searchResults.summary.uniqueUsers} unique users, ${searchResults.summary.uniqueLocations} locations`;
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `Booking Search Results (${searchResults.summary.dateRange.from} to ${searchResults.summary.dateRange.to}):\n${text}${summary}`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error searching bookings: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }],
+        isError: true
+      };
+    }
+  }
+  
   private async handleBrowseLocations(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
     try {
       const parentId = args['parentId'] as number | undefined;

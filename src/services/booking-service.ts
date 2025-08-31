@@ -1,4 +1,14 @@
-import { IBookingService, IBookingRequest, IBookingResponse, IOwner, ICancelBookingRequest, ICancelBookingResponse } from '../types/booking.types.js';
+import { 
+  IBookingService, 
+  IBookingRequest, 
+  IBookingResponse, 
+  IOwner, 
+  ICancelBookingRequest, 
+  ICancelBookingResponse,
+  IBookingSearchRequest,
+  IBookingSearchResponse,
+  IBookingSearchResult
+} from '../types/booking.types.js';
 import { IMatrixAPIClient } from '../types/api.types.js';
 import { IAuthenticationManager } from '../types/authentication.types.js';
 import { IConfigurationManager } from '../config/config-manager.js';
@@ -266,5 +276,166 @@ export class BookingService implements IBookingService {
     // Get credentials and make API call
     const credentials = await this.authManager.getCredentials();
     return await this.apiClient.cancelBooking(request, credentials);
+  }
+  
+  /**
+   * Comprehensive booking search with multiple filter options
+   */
+  async searchBookings(request: IBookingSearchRequest): Promise<IBookingSearchResponse> {
+    const credentials = await this.authManager.getCredentials();
+    
+    // Format dates to ensure proper format
+    const dateFrom = this.formatDate(request.dateFrom);
+    const dateTo = this.formatDate(request.dateTo);
+    
+    // Determine booking category based on location kind if not specified
+    let bookingCategory = request.bookingCategory;
+    if (!bookingCategory && request.locationKind) {
+      bookingCategory = request.locationKind === 'ROOM' ? 9000002 : 9000001;
+    }
+    
+    // Fetch all bookings with the specified filters
+    const bookingsData = await this.apiClient.getAllBookings(
+      credentials,
+      bookingCategory,
+      dateFrom,
+      dateTo,
+      request.locationId
+    );
+    
+    // Filter and enhance bookings based on request parameters
+    let filteredBookings = bookingsData.bookings || [];
+    
+    // Filter by user if specified
+    if (request.userName) {
+      const searchName = request.userName.toLowerCase();
+      filteredBookings = filteredBookings.filter(booking => 
+        booking.owner?.name?.toLowerCase().includes(searchName) ||
+        booking.bookedBy?.name?.toLowerCase().includes(searchName)
+      );
+    }
+    
+    if (request.userEmail) {
+      const searchEmail = request.userEmail.toLowerCase();
+      filteredBookings = filteredBookings.filter(booking => 
+        booking.owner?.email?.toLowerCase() === searchEmail ||
+        booking.bookedBy?.email?.toLowerCase() === searchEmail
+      );
+    }
+    
+    // Filter by location kind if specified
+    if (request.locationKind) {
+      filteredBookings = filteredBookings.filter(booking => 
+        booking.locationKind === request.locationKind
+      );
+    }
+    
+    // By default, only show user's own bookings unless includeAllUsers is true
+    if (!request.includeAllUsers && !request.userName && !request.userEmail) {
+      const currentUser = await this.authManager.getCurrentUser(credentials);
+      filteredBookings = filteredBookings.filter(booking => 
+        booking.owner?.email === currentUser.email ||
+        booking.bookedBy?.email === currentUser.email
+      );
+    }
+    
+    // Enhance bookings with location details if requested
+    const enhancedBookings: IBookingSearchResult[] = await Promise.all(
+      filteredBookings.map(async (booking) => {
+        const enhanced: IBookingSearchResult = { ...booking };
+        
+        if (request.includeLocationDetails && booking.locationId) {
+          try {
+            const location = await this.locationService.getLocation(booking.locationId);
+            enhanced.location = {
+              id: location.id,
+              name: location.name,
+              kind: location.kind || 'UNKNOWN',
+              qualifiedName: location.qualifiedName || location.name
+            };
+            if (request.includeFacilities && location.facilities && enhanced.location) {
+              enhanced.location.facilities = location.facilities;
+            }
+          } catch {
+            // If location fetch fails, use basic info
+            enhanced.location = {
+              id: booking.locationId,
+              name: booking.locationName || `Location ${booking.locationId}`,
+              kind: booking.locationKind || 'UNKNOWN',
+              qualifiedName: booking.locationName || `Location ${booking.locationId}`
+            };
+          }
+        }
+        
+        return enhanced;
+      })
+    );
+    
+    // Calculate summary statistics
+    const uniqueUsers = new Set(enhancedBookings.map(b => b.owner?.email)).size;
+    const uniqueLocations = new Set(enhancedBookings.map(b => b.locationId)).size;
+    
+    // Group results if requested
+    let groupedResults: Record<string, IBookingSearchResult[]> | undefined;
+    if (request.groupBy) {
+      const groups: Record<string, IBookingSearchResult[]> = {};
+      
+      for (const booking of enhancedBookings) {
+        let key: string;
+        
+        switch (request.groupBy) {
+          case 'user':
+            key = booking.owner?.name || booking.owner?.email || 'Unknown User';
+            break;
+          case 'location':
+            key = booking.location?.name || booking.locationName || `Location ${booking.locationId}`;
+            break;
+          case 'date': {
+            // timeFrom is required in IBookingResponse but TypeScript doesn't know that
+            const dateStr = booking.timeFrom 
+              ? new Date(booking.timeFrom).toISOString().split('T')[0]
+              : 'Unknown Date';
+            key = dateStr as string;
+            break;
+          }
+          default:
+            key = 'Other';
+        }
+        
+        if (!groups[key]) {
+          groups[key] = [];
+        }
+        groups[key]!.push(booking);
+      }
+      groupedResults = groups;
+    }
+    
+    const result: IBookingSearchResponse = {
+      bookings: enhancedBookings,
+      summary: {
+        totalBookings: enhancedBookings.length,
+        uniqueUsers,
+        uniqueLocations,
+        dateRange: { from: dateFrom, to: dateTo }
+      }
+    };
+    
+    if (groupedResults) {
+      result.groupedResults = groupedResults;
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Helper to format date strings
+   */
+  private formatDate(date: string): string {
+    // If already in ISO format with time, return as is
+    if (date.includes('T')) {
+      return date;
+    }
+    // If just date, add time components
+    return `${date}T00:00:00`;
   }
 }

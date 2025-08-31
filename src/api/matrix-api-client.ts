@@ -180,8 +180,7 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     };
 
     const response = await this.retryWithBackoff(
-      () => this.makeRequest<IAvailabilityResponse>(apiRequest),
-      'Availability check'
+      () => this.makeRequest<IAvailabilityResponse>(apiRequest)
     );
     
     // Cache the response for 2 minutes (availability changes frequently)
@@ -319,8 +318,7 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     };
 
     const response = await this.retryWithBackoff(
-      () => this.makeRequest<IUserBookingsResponse>(apiRequest),
-      'User bookings fetch'
+      () => this.makeRequest<IUserBookingsResponse>(apiRequest)
     );
     
     // Cache for 5 minutes (user bookings don't change very frequently)
@@ -387,11 +385,11 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     };
   }
 
-  async getAllBookings(credentials: ICredentials, bookingCategory?: number, dateFrom?: string, dateTo?: string): Promise<IUserBookingsResponse> {
+  async getAllBookings(credentials: ICredentials, bookingCategory?: number, dateFrom?: string, dateTo?: string, locationId?: number): Promise<IUserBookingsResponse> {
     const config = this.configManager.getConfig();
     
     // Generate cache key for all bookings
-    const cacheKey = this.generateCacheKey('GET', 'all-bookings', { bookingCategory, dateFrom, dateTo });
+    const cacheKey = this.generateCacheKey('GET', 'all-bookings', { bookingCategory, dateFrom, dateTo, locationId });
     
     // Check cache first
     const cached = this.getCachedResponse<IUserBookingsResponse>(cacheKey);
@@ -412,14 +410,24 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     if (dateTo) {
       queryParams.append('t', dateTo);
     }
+    if (locationId) {
+      queryParams.append('l', locationId.toString());
+    }
     
-    // Add optimized include flags
+    // Add optimized include flags for comprehensive data
     queryParams.append('include', 'ancestors');
     queryParams.append('include', 'locations');
     queryParams.append('include', 'facilities');
     queryParams.append('include', 'layouts');
     queryParams.append('include', 'bookingSettings');
     queryParams.append('include', 'groups');
+    queryParams.append('include', 'bookings');  // Include booking details
+    queryParams.append('include', 'discrete');  // Include discrete time slots
+    
+    // Include all booking statuses to see who has booked what
+    queryParams.append('status', 'available');
+    queryParams.append('status', 'unavailable');
+    queryParams.append('status', 'booked');
     
     const queryString = queryParams.toString();
     const url = queryString ? 
@@ -433,8 +441,7 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     };
 
     const response = await this.retryWithBackoff(
-      () => this.makeRequest<IUserBookingsResponse>(apiRequest),
-      'All bookings fetch'
+      () => this.makeRequest<IUserBookingsResponse>(apiRequest)
     );
     
     // Cache for 3 minutes (booking data changes moderately frequently)
@@ -505,8 +512,7 @@ export class MatrixAPIClient implements IMatrixAPIClient {
 
     // Matrix API returns an array of locations directly
     const response = await this.retryWithBackoff(
-      () => this.makeRequest<ILocation[]>(apiRequest),
-      'Location hierarchy fetch'
+      () => this.makeRequest<ILocation[]>(apiRequest)
     );
     
     // Transform the raw array response into the expected format

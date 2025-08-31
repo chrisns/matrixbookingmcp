@@ -194,8 +194,8 @@ export class SearchService implements ISearchService {
             isAvailable,
             availableSlots: isAvailable && Array.isArray(availability.available) 
               ? availability.available.map((slot: Record<string, string>) => ({
-                  from: slot.timeFrom || slot.from || '',
-                  to: slot.timeTo || slot.to || ''
+                  from: slot['timeFrom'] || slot['from'] || '',
+                  to: slot['timeTo'] || slot['to'] || ''
                 }))
               : []
           };

@@ -16,13 +16,17 @@ describe('SearchService', () => {
       searchLocations: vi.fn(),
       getLocationById: vi.fn(),
       validateLocationId: vi.fn(),
-      getLocationChildren: vi.fn()
+      getLocationChildren: vi.fn(),
+      getLocation: vi.fn(),
+      getPreferredLocation: vi.fn(),
+      getLocationsByKind: vi.fn()
     } as ILocationService;
     
     mockAvailabilityService = {
       checkAvailability: vi.fn(),
       getAvailableSlots: vi.fn(),
-      checkMultipleAvailability: vi.fn()
+      checkMultipleAvailability: vi.fn(),
+      formatAvailabilityRequest: vi.fn()
     } as IAvailabilityService;
     
     searchService = new SearchService(mockLocationService, mockAvailabilityService);
@@ -66,10 +70,10 @@ describe('SearchService', () => {
       const response = await searchService.searchLocationsByRequirements(request);
       
       expect(response.results).toHaveLength(2);
-      expect(response.results[0].location.name).toBe('Room 701');
-      expect(response.results[0].facilityInfo?.matchedFacilities).toContain('Screen');
-      expect(response.results[1].location.name).toBe('Desk 37-A');
-      expect(response.results[1].facilityInfo?.matchedFacilities).toContain('Dual screen');
+      expect(response.results![0]!.location.name).toBe('Room 701');
+      expect(response.results![0]!.facilityInfo?.matchedFacilities).toContain('Screen');
+      expect(response.results![1]!.location.name).toBe('Desk 37-A');
+      expect(response.results![1]!.facilityInfo?.matchedFacilities).toContain('Dual screen');
       expect(response.totalMatches).toBe(2);
     });
     
@@ -101,7 +105,7 @@ describe('SearchService', () => {
       const response = await searchService.searchLocationsByRequirements(request);
       
       expect(response.results).toHaveLength(1);
-      expect(response.results[0].location.kind).toBe('ROOM');
+      expect(response.results![0]!.location.kind).toBe('ROOM');
       expect(response.metadata.appliedFilters).toContain('kind:ROOM');
     });
     
@@ -141,7 +145,7 @@ describe('SearchService', () => {
       const response = await searchService.searchLocationsByRequirements(request);
       
       expect(response.results).toHaveLength(1);
-      expect(response.results[0].location.name).toBe('Large Room');
+      expect(response.results![0]!.location.name).toBe('Large Room');
       expect(response.metadata.appliedFilters).toContain('capacity>=10');
     });
     
@@ -179,9 +183,9 @@ describe('SearchService', () => {
         bookingCategory: 9000002
       });
       
-      expect(response.results[0].availability?.isAvailable).toBe(true);
-      expect(response.results[0].availability?.availableSlots).toHaveLength(1);
-      expect(response.results[0].matchDetails).toContain('✓ Available at requested time');
+      expect(response.results![0]!.availability?.isAvailable).toBe(true);
+      expect(response.results![0]!.availability?.availableSlots).toHaveLength(1);
+      expect(response.results![0]!.matchDetails).toContain('✓ Available at requested time');
     });
     
     it('should handle unavailable locations', async () => {
@@ -209,9 +213,9 @@ describe('SearchService', () => {
       
       const response = await searchService.searchLocationsByRequirements(request);
       
-      expect(response.results[0].availability?.isAvailable).toBe(false);
-      expect(response.results[0].matchDetails).toContain('✗ Not available at requested time');
-      expect(response.results[0].score).toBeLessThan(1);
+      expect(response.results![0]!.availability?.isAvailable).toBe(false);
+      expect(response.results![0]!.matchDetails).toContain('✗ Not available at requested time');
+      expect(response.results![0]!.score).toBeLessThan(1);
     });
     
     it('should handle availability check failures gracefully', async () => {
@@ -237,8 +241,8 @@ describe('SearchService', () => {
       
       const response = await searchService.searchLocationsByRequirements(request);
       
-      expect(response.results[0].availability).toBeUndefined();
-      expect(response.results[0].matchDetails).toContain('⚠ Could not check availability');
+      expect(response.results![0]!.availability).toBeUndefined();
+      expect(response.results![0]!.matchDetails).toContain('⚠ Could not check availability');
     });
     
     it('should apply limit to results', async () => {
@@ -288,7 +292,7 @@ describe('SearchService', () => {
       const response = await searchService.searchLocationsByRequirements(request);
       
       expect(response.results).toHaveLength(1);
-      expect(response.results[0].facilityInfo?.matchedFacilities).toContain('Screen');
+      expect(response.results![0]!.facilityInfo?.matchedFacilities).toContain('Screen');
     });
     
     it('should score exact capacity matches higher', async () => {
@@ -320,9 +324,9 @@ describe('SearchService', () => {
       
       const response = await searchService.searchLocationsByRequirements(request);
       
-      expect(response.results[0].location.name).toBe('Room A');
-      expect(response.results[0].score).toBeGreaterThan(response.results[1].score);
-      expect(response.results[0].matchDetails).toContain('Exact capacity match (10)');
+      expect(response.results![0]!.location.name).toBe('Room A');
+      expect(response.results![0]!.score).toBeGreaterThan(response.results![1]!.score);
+      expect(response.results![0]!.matchDetails).toContain('Exact capacity match (10)');
     });
   });
   
@@ -358,8 +362,8 @@ describe('SearchService', () => {
       const response = await searchService.searchByQuery('I need a room with a screen');
       
       expect(response.results).toHaveLength(1);
-      expect(response.results[0].location.kind).toBe('ROOM');
-      expect(response.results[0].facilityInfo?.matchedFacilities).toContain('Screen');
+      expect(response.results![0]!.location.kind).toBe('ROOM');
+      expect(response.results![0]!.facilityInfo?.matchedFacilities).toContain('Screen');
     });
     
     it('should parse desk queries', async () => {
@@ -367,8 +371,8 @@ describe('SearchService', () => {
       const response = await searchService.searchByQuery('Book me an adjustable desk');
       
       expect(response.results).toHaveLength(1);
-      expect(response.results[0].location.kind).toBe('DESK');
-      expect(response.results[0].facilityInfo?.matchedFacilities).toContain('Adjustable desk');
+      expect(response.results![0]!.location.kind).toBe('DESK');
+      expect(response.results![0]!.facilityInfo?.matchedFacilities).toContain('Adjustable desk');
     });
     
     it('should parse capacity from query', async () => {
@@ -376,7 +380,7 @@ describe('SearchService', () => {
       const response = await searchService.searchByQuery('Room for 5 people');
       
       expect(response.results).toHaveLength(1);
-      expect(response.results[0].location.kind).toBe('ROOM');
+      expect(response.results![0]!.location.kind).toBe('ROOM');
     });
     
     it('should parse "now" time references', async () => {
@@ -388,7 +392,7 @@ describe('SearchService', () => {
         available: [{ timeFrom: now.toISOString(), timeTo: new Date(now.getTime() + 3600000).toISOString() }]
       } as any);
       
-      const response = await searchService.searchByQuery('Book a room now for 2 hours');
+      await searchService.searchByQuery('Book a room now for 2 hours');
       
       expect((mockAvailabilityService.checkAvailability as any)).toHaveBeenCalled();
       const callArgs = (mockAvailabilityService.checkAvailability as any).mock.calls[0][0];
@@ -408,7 +412,7 @@ describe('SearchService', () => {
       const today = new Date('2024-01-01T10:00:00');
       vi.spyOn(global, 'Date').mockImplementation(() => today as any);
       
-      const response = await searchService.searchByQuery('Book a room for tomorrow');
+      await searchService.searchByQuery('Book a room for tomorrow');
       
       const expectedTomorrow = new Date('2024-01-02T09:00:00');
       
@@ -455,7 +459,7 @@ describe('SearchService', () => {
       const locations = await searchService.findLocationsWithFacilities(['screen', 'whiteboard']);
       
       expect(locations).toHaveLength(1);
-      expect(locations[0].name).toBe('Room 701');
+      expect(locations[0]!.name).toBe('Room 701');
     });
     
     it('should return empty array when no locations match', async () => {
