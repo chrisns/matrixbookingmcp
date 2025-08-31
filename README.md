@@ -1,8 +1,8 @@
 # Matrix Booking MCP Server
 
 [![Build Status](https://github.com/chrisns/matrixbookingmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/chrisns/matrixbookingmcp/actions/workflows/ci.yml)
-[![Test Coverage](https://img.shields.io/badge/coverage-90%2B-brightgreen)](https://github.com/chrisns/matrixbookingmcp)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/chrisns/matrixbookingmcp)
+[![Test Coverage](https://img.shields.io/badge/coverage-54%25-yellow)](https://github.com/chrisns/matrixbookingmcp)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/chrisns/matrixbookingmcp)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.7.3-blue)](https://www.typescriptlang.org/)
@@ -11,13 +11,28 @@ A TypeScript MCP (Model Context Protocol) server for Matrix Booking API integrat
 
 ## 🚀 Features
 
-- **Room Availability Checking**: Query available rooms by date, time, and location
-- **Automated Booking**: Create appointments with attendee notifications
-- **Location Management**: Handle preferred locations and smart defaults
-- **Comprehensive Validation**: Input sanitization and error handling
-- **Stateless Design**: No caching for reliable, consistent operations
+### Core Booking Features
+- **Room & Desk Availability**: Check availability for rooms, desks, and desk banks
+- **Smart Booking Creation**: Create bookings with attendee management and notifications
+- **Booking Search & Discovery**: Search bookings by user, date, location, or type
+- **Colleague Calendar Discovery**: Find when colleagues are in the office (privacy-aware)
+- **Booking Management**: Cancel and manage existing bookings with notification options
+- **User Bookings**: View and track your own bookings and recurring schedules
+
+### Advanced Search & Location
+- **Natural Language Search**: Find locations using conversational queries
+- **Facility-Based Discovery**: Search by requirements (screen, whiteboard, capacity)
+- **Location Hierarchy**: Browse buildings, floors, zones, and desk banks
+- **Smart Location Resolution**: Intelligent room/desk name and number matching
+- **Cross-Organization Support**: Handle multiple organization contexts seamlessly
+
+### Technical Excellence
+- **Comprehensive Validation**: Input sanitization and XSS prevention
+- **Smart Caching**: Performance optimization with configurable TTLs
+- **Organization Context Resolution**: Intelligent organization ID mapping with fallback
 - **Security-First**: Environment-based credential management
-- **Full Test Coverage**: 90%+ test coverage with unit, integration, and performance tests
+- **Error Recovery**: Graceful degradation and alternative suggestions
+- **Comprehensive Testing**: Unit, integration, and performance test coverage
 
 ## 📋 Requirements
 
@@ -379,32 +394,29 @@ For additional support:
 
 ### Available MCP Tools
 
-#### `matrix_check_availability`
+The server provides 11 comprehensive tools for Matrix Booking operations:
 
-Check room availability for specified criteria.
+#### Booking Operations
 
-**Parameters**:
-- `date` (string, optional): Date in YYYY-MM-DD format (defaults to today)
-- `locationId` (string, optional): Location ID (defaults to `MATRIX_PREFERED_LOCATION`)
-- `startTime` (string, optional): Start time in HH:MM format (defaults to 00:00)
-- `endTime` (string, optional): End time in HH:MM format (defaults to 23:59)
+1. **`check_availability`** - Check room/desk availability
+2. **`book_appointment`** - Create new bookings with attendees
+3. **`cancel_booking`** - Cancel existing bookings
+4. **`get_user_bookings`** - View your bookings and schedules
+5. **`search_bookings`** - Search all bookings (including colleagues)
 
-**Returns**: Array of available rooms with details
+#### Location Discovery
 
-#### `matrix_book_appointment`
+6. **`get_locations`** - Browse location hierarchy
+7. **`find_location_by_name`** - Find locations by name/number
+8. **`find_location_by_requirements`** - Search by facilities and capacity
+9. **`find_location_by_id`** - Get specific location details
 
-Create a new booking appointment.
+#### System Information
 
-**Parameters**:
-- `title` (string, required): Appointment title
-- `date` (string, required): Date in YYYY-MM-DD format
-- `startTime` (string, required): Start time in HH:MM format
-- `endTime` (string, required): End time in HH:MM format
-- `roomId` (string, required): Room ID to book
-- `attendees` (string[], optional): Email addresses of attendees
-- `sendNotifications` (boolean, optional): Send email notifications (default: false)
+10. **`get_booking_types`** - List available booking categories
+11. **`get_organization_info`** - View organization details
 
-**Returns**: Booking confirmation details
+For detailed parameters and examples, see the [API Usage Guide](API_USAGE.md)
 
 ## 🤝 Contributing
 
@@ -454,7 +466,7 @@ We welcome contributions! Please follow these guidelines:
 
 - **TypeScript**: Strict mode enabled
 - **ESLint**: Follow configured rules
-- **Testing**: Minimum 90% coverage required
+- **Testing**: Maintain test coverage above 50%
 - **Commits**: Use conventional commit format
 - **Documentation**: Update for API changes
 
@@ -463,7 +475,7 @@ We welcome contributions! Please follow these guidelines:
 - [ ] Tests pass (`pnpm test`)
 - [ ] Linting passes (`pnpm lint`)
 - [ ] Type checking passes (`pnpm typecheck`)
-- [ ] Test coverage maintained (90%+)
+- [ ] Test coverage maintained (50%+)
 - [ ] Documentation updated
 - [ ] Security considerations addressed
 
@@ -488,7 +500,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - ✅ **Core Features**: Complete
 - ✅ **API Integration**: Stable
-- ✅ **Test Coverage**: 90%+
+- ✅ **Test Coverage**: 54%
 - ✅ **Documentation**: Complete
 - ✅ **Security**: Audited
 - 🔄 **Performance**: Continuously monitored

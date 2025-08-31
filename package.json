@@ -1,7 +1,7 @@
 {
   "name": "matrix-booking-mcp-server",
-  "version": "1.0.0",
-  "description": "TypeScript MCP server for Matrix Booking API integration, enabling automated room booking and availability checking",
+  "version": "2.0.0",
+  "description": "TypeScript MCP server for Matrix Booking API integration with comprehensive room/desk booking, colleague discovery, and natural language search capabilities",
   "repository": {
     "type": "git",
     "url": "https://github.com/chrisns/matrixbookingmcp.git"

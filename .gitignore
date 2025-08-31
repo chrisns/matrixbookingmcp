@@ -98,10 +98,9 @@ public
 .out
 .storybook-out
 
-# Claude AI artifacts (keep existing entries)
-.claude/agents/kfc
-.claude/settings/kfc-settings.json
-bookexample.js
-
-example_calls
-.kiro
+# Project specific
+example_calls/
+.kiro/
+.cache_ggshield
+notes.md
+*.example.js
