@@ -326,7 +326,7 @@ describe('SearchService', () => {
       
       expect(response.results![0]!.location.name).toBe('Room A');
       expect(response.results![0]!.score).toBeGreaterThan(response.results![1]!.score);
-      expect(response.results![0]!.matchDetails).toContain('Exact capacity match (10)');
+      expect(response.results![0]!.matchDetails).toContain('🎯 Perfect capacity match (10)');
     });
   });
   

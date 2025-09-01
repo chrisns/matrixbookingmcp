@@ -32,7 +32,8 @@
       "Read(/Users/cns/Library/Application Support/Claude/**)",
       "Read(/tmp/**)",
       "Read(/private/tmp/**)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

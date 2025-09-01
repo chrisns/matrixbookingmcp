@@ -292,7 +292,7 @@ export class MatrixBookingMCPServer {
       },
       {
         name: 'find_location_by_requirements',
-        description: 'Find locations by facilities, capacity, and availability. Supports natural language queries like "desk with adjustable desk" or "room for 5 people with screen"',
+        description: 'Find locations by facilities, capacity, and availability. When capacity is specified, automatically optimizes for the smallest suitable room to prevent waste (e.g., avoids booking 16-person rooms for 1 person). Returns top 3 best-fit options. Supports natural language queries like "room for 5 people with screen"',
         inputSchema: {
           type: 'object',
           properties: {

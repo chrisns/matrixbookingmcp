@@ -65,6 +65,14 @@ export class SearchService implements ISearchService {
     let locations = hierarchy.locations || [];
     const totalLocations = locations.length;
     
+    // If no locations found and we haven't tried without parent filter, try global search
+    if (locations.length === 0 && request.parentLocationId) {
+      const globalQuery = { ...queryRequest };
+      delete globalQuery['parentId'];
+      const globalHierarchy = await this.locationService.getLocationHierarchy(globalQuery as ILocationQueryRequest);
+      locations = globalHierarchy.locations || [];
+    }
+    
     // Filter by location kind if specified
     if (request.locationKind) {
       locations = locations.filter(loc => loc.kind === request.locationKind);
@@ -125,12 +133,34 @@ export class SearchService implements ISearchService {
         }
       }
       
-      // Boost score for exact capacity match
-      if (capacity && location.capacity === capacity) {
-        score *= 1.2;
-        matchDetails.push(`Exact capacity match (${capacity})`);
-      } else if (capacity && location.capacity && location.capacity >= capacity) {
-        matchDetails.push(`Capacity ${location.capacity} (fits ${capacity})`);
+      // Apply capacity efficiency scoring
+      if (capacity && location.capacity) {
+        if (location.capacity === capacity) {
+          // Perfect match bonus
+          score *= 1.2;
+          matchDetails.push(`🎯 Perfect capacity match (${capacity})`);
+        } else if (location.capacity >= capacity) {
+          // Calculate efficiency penalty for oversized rooms
+          const wastedCapacity = location.capacity - capacity;
+          const efficiencyScore = Math.exp(-0.15 * wastedCapacity);
+          score *= efficiencyScore;
+          
+          // Add efficiency details
+          const efficiencyPercent = Math.round(efficiencyScore * 100);
+          matchDetails.push(`Capacity ${location.capacity} (requested ${capacity})`);
+          matchDetails.push(`Efficiency: ${efficiencyPercent}%`);
+          
+          // Add visual indicator
+          if (efficiencyScore >= 0.85) {
+            matchDetails.push('✅ Excellent size match');
+          } else if (efficiencyScore >= 0.60) {
+            matchDetails.push('👍 Good size match');
+          } else if (efficiencyScore >= 0.40) {
+            matchDetails.push('⚠️ Larger than needed');
+          } else {
+            matchDetails.push('❌ Significantly oversized');
+          }
+        }
       }
       
       // Add location type to match details
@@ -151,13 +181,26 @@ export class SearchService implements ISearchService {
       });
     }
     
-    // Sort by score (highest first)
-    scoredLocations.sort((a, b) => b.score - a.score);
+    // Sort by score with smart capacity tiebreaking
+    scoredLocations.sort((a, b) => {
+      // Primary sort by score
+      const scoreDiff = b.score - a.score;
+      if (Math.abs(scoreDiff) > 0.01) {
+        return scoreDiff;
+      }
+      // For similar scores when capacity is specified, prefer smaller rooms
+      if (capacity && a.location.capacity && b.location.capacity) {
+        return a.location.capacity - b.location.capacity;
+      }
+      return scoreDiff;
+    });
     
-    // Apply limit
-    const limitedLocations = request.limit 
-      ? scoredLocations.slice(0, request.limit)
-      : scoredLocations;
+    // Apply smart defaults for capacity searches
+    const effectiveLimit = capacity && !request.limit 
+      ? Math.min(3, scoredLocations.length)  // Show top 3 for capacity searches
+      : request.limit || scoredLocations.length;
+    
+    const limitedLocations = scoredLocations.slice(0, effectiveLimit);
     
     // Check availability if dates provided
     const results: ILocationSearchResult[] = [];
