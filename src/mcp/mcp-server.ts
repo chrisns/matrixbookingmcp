@@ -19,7 +19,9 @@ import { FacilityParser } from '../services/facility-parser.js';
 import { 
   ILocation, 
   ILocationQueryRequest,
-  IBookingSearchRequest 
+  IBookingSearchRequest,
+  IBookingResponse,
+  IUserSearchResult
 } from '../types/index.js';
 import { ILocationSearchRequest } from '../types/search.types.js';
 
@@ -946,8 +948,8 @@ export class MatrixBookingMCPServer {
       
       const userBookings: Array<{
         user: typeof users[0];
-        bookings: Array<any>;
-        locations?: Array<any> | undefined;
+        bookings: IBookingResponse[];
+        locations?: ILocation[] | undefined;
       }> = [];
 
       for (const user of users) {
@@ -986,7 +988,7 @@ export class MatrixBookingMCPServer {
           return {
             content: [{
               type: 'text',
-              text: `Found ${users.length} users matching "${userName}" but none have bookings on ${date}:\n${users.map((u: any) => `• ${u.name} (${u.email})`).join('\n')}`
+              text: `Found ${users.length} users matching "${userName}" but none have bookings on ${date}:\n${users.map((u: IUserSearchResult) => `• ${u.name} (${u.email})`).join('\n')}`
             }]
           };
         }
@@ -997,7 +999,7 @@ export class MatrixBookingMCPServer {
         // Create a map of location IDs to names if locations are provided
         const locationMap = new Map<number, string>();
         if (locations) {
-          locations.forEach((loc: any) => {
+          locations.forEach((loc: ILocation) => {
             if (loc.id && loc.name) {
               locationMap.set(loc.id, loc.qualifiedName || loc.name);
             }
@@ -1014,7 +1016,7 @@ export class MatrixBookingMCPServer {
             location = locationMap.get(booking.locationId);
           }
           if (!location) {
-            location = booking.location || `Location ID: ${booking.locationId || 'Unknown'}`;
+            location = `Location ID: ${booking.locationId || 'Unknown'}`;
           }
           
           return `  📍 ${location} (${timeFrom} - ${timeTo})`;

@@ -30,7 +30,8 @@ describe('AvailabilityService', () => {
         apiBaseUrl: 'https://api.example.com',
         matrixUsername: 'test@example.com',
         matrixPassword: 'password',
-        matrixPreferredLocation: '123'
+        matrixPreferredLocation: '123',
+        defaultBookingCategory: 9000001
       }),
       validateConfig: vi.fn()
     } as any;

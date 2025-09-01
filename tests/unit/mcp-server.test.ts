@@ -42,7 +42,7 @@ describe('MatrixBookingMCPServer', () => {
       expect(toolNames).toContain('list_available_facilities');
       expect(toolNames).toContain('find_location_by_name');
       expect(toolNames).toContain('find_location_by_requirements');
-      expect(tools).toHaveLength(11);
+      expect(tools).toHaveLength(13);
     });
 
     it('should have correct input schemas for each tool', () => {
@@ -516,8 +516,8 @@ describe('MatrixBookingMCPServer', () => {
       expect(knownToolNames).toContain('list_available_facilities');
       expect(knownToolNames).toContain('search_by_facilities');
       
-      // Verify exactly 11 tools are registered (added search_bookings)
-      expect(knownToolNames.length).toBe(11);
+      // Verify exactly 13 tools are registered (added search_bookings, find_user_location, quick_book_room)
+      expect(knownToolNames.length).toBe(13);
     });
   });
 });

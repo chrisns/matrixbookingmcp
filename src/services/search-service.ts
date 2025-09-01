@@ -44,7 +44,7 @@ export class SearchService implements ISearchService {
   private flattenLocationHierarchy(locations: ILocation[]): ILocation[] {
     const flattened: ILocation[] = [];
     
-    const processLocation = (location: ILocation) => {
+    const processLocation = (location: ILocation): void => {
       flattened.push(location);
       if (location.locations && Array.isArray(location.locations)) {
         location.locations.forEach(processLocation);
