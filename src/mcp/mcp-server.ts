@@ -38,6 +38,8 @@ export class MatrixBookingMCPServer {
   private userService: UserService;
   private searchService: SearchService;
   private configManager: ConfigurationManager;
+  private apiClient: MatrixAPIClient;
+  private authManager: AuthenticationManager;
 
   constructor() {
     this.server = new Server(
@@ -54,44 +56,44 @@ export class MatrixBookingMCPServer {
 
     // Initialize services
     this.configManager = new ConfigurationManager();
-    const authManager = new AuthenticationManager(this.configManager);
-    const apiClient = new MatrixAPIClient(authManager, this.configManager);
+    this.authManager = new AuthenticationManager(this.configManager);
+    this.apiClient = new MatrixAPIClient(this.authManager, this.configManager);
 
     this.availabilityService = new AvailabilityService(
-      apiClient,
+      this.apiClient,
       this.configManager,
-      authManager
+      this.authManager
     );
 
     this.locationService = new LocationService(
-      apiClient,
+      this.apiClient,
       this.configManager,
-      authManager
+      this.authManager
     );
 
     this.bookingService = new BookingService(
-      apiClient,
-      authManager,
+      this.apiClient,
+      this.authManager,
       this.configManager,
       this.locationService
     );
 
     this.organizationService = new OrganizationService(
-      apiClient,
+      this.apiClient,
       this.configManager,
-      authManager
+      this.authManager
     );
 
     this.userService = new UserService(
-      apiClient,
-      authManager
+      this.apiClient,
+      this.authManager
     );
 
     this.searchService = new SearchService(
       this.locationService,
       this.availabilityService,
-      apiClient,
-      authManager,
+      this.apiClient,
+      this.authManager,
       this.configManager
     );
 
@@ -168,6 +170,9 @@ export class MatrixBookingMCPServer {
 
           case 'find_location_by_name':
             return await this.handleFindLocationByName(args || {});
+          
+          case 'find_user_location':
+            return await this.handleFindUserLocation(args || {});
 
           default:
             return {
@@ -419,6 +424,18 @@ export class MatrixBookingMCPServer {
             searchType: { type: 'string', description: 'Type to search for: "desk", "room", or "any" (default: "any")' }
           },
           required: ['name']
+        }
+      },
+      {
+        name: 'find_user_location',
+        description: 'Find where a specific user is sitting/has booked a desk or room for today or a specific date',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            userName: { type: 'string', description: 'Name of the user to search for (e.g., "John Smith", "Jane Doe")' },
+            date: { type: 'string', description: 'Date to check bookings for (YYYY-MM-DD format). Defaults to today if not specified' }
+          },
+          required: ['userName']
         }
       }
     ];
@@ -889,6 +906,135 @@ export class MatrixBookingMCPServer {
         content: [{
           type: 'text',
           text: `Error searching locations: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }],
+        isError: true
+      };
+    }
+  }
+
+  private async handleFindUserLocation(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
+    try {
+      const userName = args['userName'] as string;
+      const date = (args['date'] as string) || new Date().toISOString().split('T')[0];
+      
+      if (!userName) {
+        return {
+          content: [{
+            type: 'text',
+            text: '❌ Please provide a user name to search for'
+          }],
+          isError: true
+        };
+      }
+
+      // Step 1: Search for users matching the name
+      const credentials = await this.authManager.getCredentials();
+      const users = await this.apiClient.searchUsers(userName, credentials);
+      
+      if (users.length === 0) {
+        return {
+          content: [{
+            type: 'text',
+            text: `❌ No users found matching "${userName}"`
+          }]
+        };
+      }
+
+      // Step 2: Get bookings for each user on the specified date
+      const dateFrom = `${date}T00:00:00`;
+      const dateTo = `${date}T23:59:59`;
+      
+      const userBookings: Array<{
+        user: typeof users[0];
+        bookings: Array<any>;
+        locations?: Array<any> | undefined;
+      }> = [];
+
+      for (const user of users) {
+        try {
+          const bookingsResponse = await this.apiClient.getUserFilteredBookings(
+            user.id,
+            dateFrom,
+            dateTo,
+            undefined,
+            credentials
+          );
+          
+          if (bookingsResponse.bookings && bookingsResponse.bookings.length > 0) {
+            userBookings.push({
+              user,
+              bookings: bookingsResponse.bookings,
+              locations: bookingsResponse.locations
+            });
+          }
+        } catch (error) {
+          // Silently skip users we can't get bookings for
+          console.error(`Failed to get bookings for user ${user.id}:`, error);
+        }
+      }
+
+      // Step 3: Format the response
+      if (userBookings.length === 0) {
+        if (users.length === 1) {
+          return {
+            content: [{
+              type: 'text',
+              text: `👤 ${users[0]?.name} (${users[0]?.email}) has no bookings on ${date}`
+            }]
+          };
+        } else {
+          return {
+            content: [{
+              type: 'text',
+              text: `Found ${users.length} users matching "${userName}" but none have bookings on ${date}:\n${users.map((u: any) => `• ${u.name} (${u.email})`).join('\n')}`
+            }]
+          };
+        }
+      }
+
+      // Format bookings for each user
+      const results = userBookings.map(({ user, bookings, locations }) => {
+        // Create a map of location IDs to names if locations are provided
+        const locationMap = new Map<number, string>();
+        if (locations) {
+          locations.forEach((loc: any) => {
+            if (loc.id && loc.name) {
+              locationMap.set(loc.id, loc.qualifiedName || loc.name);
+            }
+          });
+        }
+        
+        const bookingDetails = bookings.map(booking => {
+          const timeFrom = new Date(booking.timeFrom).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          const timeTo = new Date(booking.timeTo).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          
+          // Try to get location name from various sources
+          let location = booking.locationName;
+          if (!location && booking.locationId && locationMap.has(booking.locationId)) {
+            location = locationMap.get(booking.locationId);
+          }
+          if (!location) {
+            location = booking.location || `Location ID: ${booking.locationId || 'Unknown'}`;
+          }
+          
+          return `  📍 ${location} (${timeFrom} - ${timeTo})`;
+        }).join('\n');
+        
+        return `👤 ${user.name} (${user.email}):\n${bookingDetails}`;
+      }).join('\n\n');
+
+      return {
+        content: [{
+          type: 'text',
+          text: `Found bookings for ${date}:\n\n${results}`
+        }]
+      };
+      
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error finding user location: ${error instanceof Error ? error.message : 'Unknown error'}`
         }],
         isError: true
       };

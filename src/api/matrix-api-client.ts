@@ -15,7 +15,8 @@ import {
   ICurrentUserResponse, 
   IUserBookingsRequest, 
   IUserBookingsResponse,
-  IOrganizationResponse
+  IOrganizationResponse,
+  IUserSearchResult
 } from '../types/index.js';
 import { IAuthenticationManager } from '../types/authentication.types.js';
 import { IConfigurationManager } from '../config/config-manager.js';
@@ -538,6 +539,82 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     this.setCachedResponse(cacheKey, hierarchyResponse, 900000);
     
     return hierarchyResponse;
+  }
+
+  /**
+   * Search for users by name
+   */
+  async searchUsers(searchQuery: string, credentials: ICredentials): Promise<IUserSearchResult[]> {
+    const config = this.configManager.getConfig();
+    const headers = this.authManager.createAuthHeader(credentials);
+    
+    const queryParams = new URLSearchParams();
+    queryParams.append('partial', searchQuery);
+    queryParams.append('deactivated', 'false');
+    
+    const url = `${config.apiBaseUrl}/user?${queryParams.toString()}`;
+    
+    const apiRequest: IAPIRequest = {
+      method: 'GET',
+      url,
+      headers
+    };
+    
+    const response = await this.retryWithBackoff(
+      () => this.makeRequest<IUserSearchResult[]>(apiRequest)
+    );
+    
+    return response.data;
+  }
+  
+  /**
+   * Get bookings filtered by user ID
+   */
+  async getUserFilteredBookings(
+    userId: number,
+    dateFrom: string,
+    dateTo: string,
+    locationId?: number,
+    credentials?: ICredentials
+  ): Promise<IUserBookingsResponse> {
+    const config = this.configManager.getConfig();
+    const creds = credentials || await this.authManager.getCredentials();
+    const headers = this.authManager.createAuthHeader(creds);
+    
+    const queryParams = new URLSearchParams();
+    
+    // Add booking category if configured
+    if (config.defaultBookingCategory) {
+      queryParams.append('bc', config.defaultBookingCategory.toString());
+    }
+    
+    queryParams.append('f', dateFrom);
+    queryParams.append('t', dateTo);
+    queryParams.append('u', userId.toString()); // Filter by user ID
+    
+    if (locationId) {
+      queryParams.append('l', locationId.toString());
+    }
+    
+    // Include comprehensive data
+    queryParams.append('include', 'ancestors');
+    queryParams.append('include', 'locations');
+    queryParams.append('include', 'facilities');
+    queryParams.append('include', 'bookingSettings');
+    
+    const url = `${config.apiBaseUrl}/booking?${queryParams.toString()}`;
+    
+    const apiRequest: IAPIRequest = {
+      method: 'GET',
+      url,
+      headers
+    };
+    
+    const response = await this.retryWithBackoff(
+      () => this.makeRequest<IUserBookingsResponse>(apiRequest)
+    );
+    
+    return response.data;
   }
 
   async getOrganization(organizationId: number, credentials: ICredentials): Promise<IOrganizationResponse> {

@@ -24,6 +24,14 @@ export interface IAPIResponse<T = unknown> {
   data: T;
 }
 
+export interface IUserSearchResult {
+  id: number;
+  name: string;
+  email: string;
+  organisationId?: number;
+  isActive: boolean;
+}
+
 export interface IMatrixAPIClient {
   // Existing endpoints
   checkAvailability(request: IAvailabilityRequest, credentials: ICredentials): Promise<IAvailabilityResponse>;
@@ -37,6 +45,8 @@ export interface IMatrixAPIClient {
   getAllBookings(credentials: ICredentials, bookingCategory?: number, dateFrom?: string, dateTo?: string, locationId?: number): Promise<IUserBookingsResponse>;
   getLocationHierarchy(request: ILocationQueryRequest, credentials: ICredentials): Promise<ILocationHierarchyResponse>;
   getOrganization(organizationId: number, credentials: ICredentials): Promise<IOrganizationResponse>;
+  searchUsers(searchQuery: string, credentials: ICredentials): Promise<IUserSearchResult[]>;
+  getUserFilteredBookings(userId: number, dateFrom: string, dateTo: string, locationId?: number, credentials?: ICredentials): Promise<IUserBookingsResponse>;
   
   // Cancel booking endpoint
   cancelBooking(request: ICancelBookingRequest, credentials: ICredentials): Promise<ICancelBookingResponse>;

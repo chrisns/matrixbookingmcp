@@ -24,6 +24,8 @@ describe('BookingService - searchBookings', () => {
       getAllBookings: vi.fn(),
       getLocationHierarchy: vi.fn(),
       getOrganization: vi.fn(),
+      searchUsers: vi.fn(),
+      getUserFilteredBookings: vi.fn(),
       cancelBooking: vi.fn(),
       makeRequest: vi.fn()
     } as IMatrixAPIClient;
