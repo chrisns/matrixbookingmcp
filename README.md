@@ -132,8 +132,8 @@ Add to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "matrix-booking": {
-      "command": "node",
-      "args": ["/path/to/matrix-booking-mcp-server/dist/index.js"],
+      "command": "npx",
+      "args": ["--yes", "github:chrisns/matrixbookingmcp"],
       "env": {
         "MATRIX_USERNAME": "your-username",
         "MATRIX_PASSWORD": "your-password",
@@ -143,6 +143,8 @@ Add to your `claude_desktop_config.json`:
   }
 }
 ```
+
+> **Note**: This will run the server directly from the GitHub repository without needing to clone or build it locally.
 
 2. **Restart Claude Desktop**
 
