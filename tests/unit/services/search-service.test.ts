@@ -29,7 +29,10 @@ describe('SearchService', () => {
       formatAvailabilityRequest: vi.fn()
     } as IAvailabilityService;
     
-    searchService = new SearchService(mockLocationService, mockAvailabilityService);
+    const mockApiClient = {} as any;
+    const mockAuthManager = {} as any;
+    const mockConfigManager = {} as any;
+    searchService = new SearchService(mockLocationService, mockAvailabilityService, mockApiClient, mockAuthManager, mockConfigManager);
   });
   
   describe('searchLocationsByRequirements', () => {

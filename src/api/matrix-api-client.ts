@@ -22,9 +22,9 @@ import { IConfigurationManager } from '../config/config-manager.js';
 import { IErrorHandler } from '../types/error.types.js';
 import { ErrorHandler } from '../error/error-handler.js';
 
-// API optimization constants based on successful patterns from design document
-const DESK_BOOKING_CATEGORY = 9000001; // Generic desk category ID
-const ROOM_BOOKING_CATEGORY = 9000002; // Generic room category ID
+// API booking categories discovered from organization 
+// Note: These are real category IDs from the Matrix Booking system
+// The generic IDs (9000001, 9000002) don't exist in this environment
 
 // Cache interface for request caching
 interface CacheEntry<T> {
@@ -135,7 +135,7 @@ export class MatrixAPIClient implements IMatrixAPIClient {
   }
 
   async checkAvailability(request: IAvailabilityRequest, credentials: ICredentials): Promise<IAvailabilityResponse> {
-    const config = this.configManager.getConfig();
+    const apiConfig = this.configManager.getConfig();
     
     // Generate cache key for availability requests
     const cacheKey = this.generateCacheKey('GET', 'availability', request);
@@ -158,20 +158,16 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     params.append('f', request.dateFrom);
     params.append('t', request.dateTo);
     
-    // Use correct booking category based on request type or default to desk
-    const bookingCategory = request.bookingCategory || DESK_BOOKING_CATEGORY;
-    params.append('bc', bookingCategory.toString());
+    // Use booking category from request or config
+    const bookingCategory = request.bookingCategory || apiConfig.defaultBookingCategory;
+    if (bookingCategory) {
+      params.append('bc', bookingCategory.toString());
+    }
     
-    // Optimized include flags based on successful API patterns from design document
-    params.append('include', 'locations');
-    params.append('include', 'facilities');
-    params.append('include', 'occupancy');
-    params.append('include', 'bookings');
+    // Don't add any includes or status filters - let the API return raw availability
     
-    // Add status filtering for available slots only
-    params.append('status', 'available');
+    const url = `${apiConfig.apiBaseUrl}/availability?${params.toString()}`;
     
-    const url = `${config.apiBaseUrl}/availability?${params.toString()}`;
     
     const apiRequest: IAPIRequest = {
       method: 'GET',
@@ -336,12 +332,16 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     dateTo: string,
     credentials: ICredentials
   ): Promise<IAvailabilityResponse> {
-    return this.checkAvailability({
+    const apiConfig = this.configManager.getConfig();
+    const request: IAvailabilityRequest = {
       locationId,
       dateFrom,
-      dateTo,
-      bookingCategory: DESK_BOOKING_CATEGORY
-    }, credentials);
+      dateTo
+    };
+    if (apiConfig.defaultBookingCategory) {
+      request.bookingCategory = apiConfig.defaultBookingCategory;
+    }
+    return this.checkAvailability(request, credentials);
   }
 
   /**
@@ -353,12 +353,16 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     dateTo: string,
     credentials: ICredentials
   ): Promise<IAvailabilityResponse> {
-    return this.checkAvailability({
+    const apiConfig = this.configManager.getConfig();
+    const request: IAvailabilityRequest = {
       locationId,
       dateFrom,
-      dateTo,
-      bookingCategory: ROOM_BOOKING_CATEGORY
-    }, credentials);
+      dateTo
+    };
+    if (apiConfig.defaultBookingCategory) {
+      request.bookingCategory = apiConfig.defaultBookingCategory;
+    }
+    return this.checkAvailability(request, credentials);
   }
 
   /**
@@ -424,10 +428,6 @@ export class MatrixAPIClient implements IMatrixAPIClient {
     queryParams.append('include', 'bookings');  // Include booking details
     queryParams.append('include', 'discrete');  // Include discrete time slots
     
-    // Include all booking statuses to see who has booked what
-    queryParams.append('status', 'available');
-    queryParams.append('status', 'unavailable');
-    queryParams.append('status', 'booked');
     
     const queryString = queryParams.toString();
     const url = queryString ? 
@@ -486,19 +486,23 @@ export class MatrixAPIClient implements IMatrixAPIClient {
         queryParams.append('include', 'facilities');
       }
     } else {
-      // Use full parameters when not filtering by kind
-      queryParams.append('select', 'higher');
+      // When we have a parentId, we want bookable children
+      if (request.parentId) {
+        queryParams.append('select', 'bookables');
+        queryParams.append('l', request.parentId.toString());
+      } else if (request.locationId) {
+        queryParams.append('select', 'higher');
+        queryParams.append('l', request.locationId.toString());
+      } else {
+        queryParams.append('select', 'higher');
+      }
+      
       queryParams.append('include', 'locations');
       queryParams.append('include', 'nested');
       
       // Include facilities if requested
       if (request.includeFacilities) {
         queryParams.append('include', 'facilities');
-      }
-      
-      // Add specific location ID if provided for targeted queries
-      if (request.locationId || request.parentId) {
-        queryParams.append('l', (request.locationId || request.parentId)!.toString());
       }
     }
     

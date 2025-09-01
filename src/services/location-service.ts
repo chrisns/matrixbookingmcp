@@ -109,8 +109,10 @@ export class LocationService implements ILocationService {
       // Use default request if none provided
       const queryRequest = request || {};
       
+      
       // Call the Matrix API through the API client
       const hierarchy = await this.apiClient.getLocationHierarchy(queryRequest, credentials);
+      
       
       return hierarchy;
       

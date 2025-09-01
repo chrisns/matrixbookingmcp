@@ -89,11 +89,17 @@ export class MatrixBookingMCPServer {
 
     this.searchService = new SearchService(
       this.locationService,
-      this.availabilityService
+      this.availabilityService,
+      apiClient,
+      authManager,
+      this.configManager
     );
 
     this.setupHandlers();
   }
+
+  private toolCallCount = new Map<string, number>();
+  private lastResetTime = Date.now();
 
   private setupHandlers(): void {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -104,6 +110,26 @@ export class MatrixBookingMCPServer {
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
+
+      // Reset counters every 5 minutes
+      if (Date.now() - this.lastResetTime > 5 * 60 * 1000) {
+        this.toolCallCount.clear();
+        this.lastResetTime = Date.now();
+      }
+
+      // Circuit breaker for browse_locations
+      if (name === 'browse_locations') {
+        const count = this.toolCallCount.get(name) || 0;
+        if (count >= 3) {
+          return {
+            content: [{
+              type: 'text',
+              text: '⚠️ Too many browse attempts (3+). Use search_bookings or quick_book_room instead for better performance.\n\nSuggested alternatives:\n• search_bookings - Find available rooms by capacity and time\n• quick_book_room - One-step booking for simple requests'
+            }]
+          };
+        }
+        this.toolCallCount.set(name, count + 1);
+      }
 
       try {
         switch (name) {
@@ -130,6 +156,9 @@ export class MatrixBookingMCPServer {
           
           case 'find_location_by_requirements':
             return await this.handleFindLocationByRequirements(args || {});
+
+          case 'quick_book_room':
+            return await this.handleQuickBookRoom(args || {});
 
           case 'list_booking_types':
             return await this.handleListBookingTypes();
@@ -211,7 +240,7 @@ export class MatrixBookingMCPServer {
       },
       {
         name: 'search_bookings',
-        description: 'Search for bookings - your own, colleagues, or by location. Flexible search with optional filters.',
+        description: '🎯 PRIMARY TOOL for finding available rooms. Use this FIRST before browsing. Searches for bookable locations by capacity and availability. Returns rooms sorted by best fit (smallest suitable room first). Much faster than browse_locations.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -263,7 +292,7 @@ export class MatrixBookingMCPServer {
       },
       {
         name: 'browse_locations',
-        description: 'Browse the hierarchy of buildings, floors, rooms and desks',
+        description: '⚠️ SLOW - AVOID for booking flows. Only use for exploring location hierarchy when search_bookings and find_location_by_requirements fail. Requires multiple calls (3-7) to traverse hierarchy. Use search_bookings or quick_book_room instead.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -292,7 +321,7 @@ export class MatrixBookingMCPServer {
       },
       {
         name: 'find_location_by_requirements',
-        description: 'Find locations by facilities, capacity, and availability. When capacity is specified, automatically optimizes for the smallest suitable room to prevent waste (e.g., avoids booking 16-person rooms for 1 person). Returns top 3 best-fit options. Supports natural language queries like "room for 5 people with screen"',
+        description: '🔧 Advanced search for locations by facilities, capacity, and availability. Automatically optimizes for smallest suitable room. Returns top 3 best-fit options. If this fails, use search_bookings as fallback.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -326,6 +355,41 @@ export class MatrixBookingMCPServer {
               description: 'Maximum results to return (default: 10)' 
             }
           }
+        }
+      },
+      {
+        name: 'quick_book_room',
+        description: '🚀 ONE-STEP BOOKING - Best for simple requests like "book a room for 2 people". Automatically finds the best-fit available room and books it. Prevents oversized bookings (won\'t book 16-person room for 1 person).',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            capacity: { 
+              type: 'number', 
+              description: 'Number of people (required)' 
+            },
+            dateFrom: { 
+              type: 'string', 
+              description: 'Start time in ISO 8601 format (required)' 
+            },
+            dateTo: { 
+              type: 'string', 
+              description: 'End time in ISO 8601 format (required)' 
+            },
+            requirements: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Optional facilities needed (e.g., ["screen", "whiteboard"])'
+            },
+            description: {
+              type: 'string',
+              description: 'Booking purpose/description (default: "Quick booking")'
+            },
+            autoConfirm: {
+              type: 'boolean',
+              description: 'Auto-confirm the booking (default: true)'
+            }
+          },
+          required: ['capacity', 'dateFrom', 'dateTo']
         }
       },
       {
@@ -766,15 +830,24 @@ export class MatrixBookingMCPServer {
       if (args['dateFrom']) request.dateFrom = args['dateFrom'] as string;
       if (args['dateTo']) request.dateTo = args['dateTo'] as string;
       if (args['limit']) request.limit = args['limit'] as number;
+      
+      // Use preferred location if no parent specified
+      if (!args['parentLocationId']) {
+        const preferredLocationId = parseInt(this.configManager.getConfig().matrixPreferredLocation, 10);
+        if (!isNaN(preferredLocationId)) {
+          request.parentLocationId = preferredLocationId;
+        }
+      }
 
       // Use the search service
       const searchResults = await this.searchService.searchLocationsByRequirements(request);
 
       if (searchResults.results.length === 0) {
+        // Provide fallback strategy when no results found
         return {
           content: [{
             type: 'text',
-            text: 'No locations found matching your requirements.'
+            text: '⚠️ No locations found matching your requirements.\n\nFallback strategy:\n• Try search_bookings with just capacity and date parameters\n• Or use quick_book_room for automatic booking\n• Consider removing some facility requirements'
           }]
         };
       }
@@ -816,6 +889,106 @@ export class MatrixBookingMCPServer {
         content: [{
           type: 'text',
           text: `Error searching locations: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }],
+        isError: true
+      };
+    }
+  }
+
+  private async handleQuickBookRoom(args: Record<string, unknown>): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
+    try {
+      const capacity = args['capacity'] as number;
+      const dateFrom = args['dateFrom'] as string;
+      const dateTo = args['dateTo'] as string;
+      const requirements = (args['requirements'] as string[]) || [];
+      const description = (args['description'] as string) || 'Quick booking';
+      const autoConfirm = (args['autoConfirm'] as boolean) !== false;
+      
+
+      // Step 1: Find best-fit room using search service
+      // Use preferred location from config if no location specified
+      const preferredLocationId = parseInt(this.configManager.getConfig().matrixPreferredLocation, 10);
+      
+      const searchRequest: ILocationSearchRequest = {
+        capacity,
+        dateFrom,
+        dateTo,
+        locationKind: 'ROOM', // This now filters for ZONE/DESK_BANK (bookable spaces)
+        requirements,
+        parentLocationId: preferredLocationId, // Search within preferred location
+        limit: 10 // Get more matches to find available ones
+      };
+
+      const searchResults = await this.searchService.searchLocationsByRequirements(searchRequest);
+      
+
+      if (searchResults.results.length === 0) {
+        return {
+          content: [{
+            type: 'text',
+            text: `❌ No available rooms found for ${capacity} people from ${new Date(dateFrom).toLocaleString()} to ${new Date(dateTo).toLocaleString()}.\n\nTry:\n• Different time slot\n• Smaller capacity\n• Removing facility requirements`
+          }]
+        };
+      }
+      
+
+      // Find first available room
+      const availableRoom = searchResults.results.find(r => 
+        r.availability?.isAvailable !== false
+      );
+
+      if (!availableRoom) {
+        return {
+          content: [{
+            type: 'text',
+            text: `⚠️ Found ${searchResults.results.length} rooms but none are available at the requested time.\n\nTop matches (currently unavailable):\n${searchResults.results.slice(0, 3).map(r => 
+              `• ${r.location.name} (capacity: ${r.location.capacity})`
+            ).join('\\n')}`
+          }]
+        };
+      }
+
+      // Step 2: Create booking if autoConfirm is true
+      if (autoConfirm) {
+        try {
+          // Format the booking request with defaults
+          const bookingRequest = await this.bookingService.formatBookingRequest({
+            locationId: availableRoom.location.id,
+            timeFrom: dateFrom,
+            timeTo: dateTo,
+            description
+          });
+          
+          const booking = await this.bookingService.createBooking(bookingRequest);
+
+          return {
+            content: [{
+              type: 'text',
+              text: `✅ Successfully booked!\n\n📍 Room: ${availableRoom.location.qualifiedName || availableRoom.location.name}\n👥 Capacity: ${availableRoom.location.capacity} people\n📅 Time: ${new Date(dateFrom).toLocaleString()} - ${new Date(dateTo).toLocaleString()}\n🎫 Booking ID: ${booking.id}\n\n${availableRoom.matchDetails.join('\\n')}`
+            }]
+          };
+        } catch (error) {
+          return {
+            content: [{
+              type: 'text',
+              text: `⚠️ Found perfect room but booking failed: ${error instanceof Error ? error.message : 'Unknown error'}\n\nRoom details:\n• ${availableRoom.location.name} (capacity: ${availableRoom.location.capacity})`
+            }]
+          };
+        }
+      } else {
+        // Return room details without booking
+        return {
+          content: [{
+            type: 'text',
+            text: `Found best-fit room:\n\n📍 ${availableRoom.location.qualifiedName || availableRoom.location.name}\n👥 Capacity: ${availableRoom.location.capacity} people\n✅ Available at requested time\n\n${availableRoom.matchDetails.join('\\n')}\n\nTo book, use create_booking with locationId: ${availableRoom.location.id}`
+          }]
+        };
+      }
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error in quick booking: ${error instanceof Error ? error.message : 'Unknown error'}`
         }],
         isError: true
       };

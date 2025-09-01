@@ -5,6 +5,7 @@
 
 import { IUserProfile } from './authentication.types.js';
 import { IBookingResponse } from './booking.types.js';
+import { ILocation } from './location.types.js';
 
 /**
  * Enhanced user profile with preferences from /api/v1/user/current
@@ -24,6 +25,7 @@ export interface ICurrentUserResponse extends IUserProfile {
  */
 export interface IUserBookingsResponse {
   bookings: IBookingResponse[];
+  locations?: ILocation[];  // Locations with availability info from booking API
   total: number;
   page?: number;
   pageSize?: number;

@@ -7,6 +7,9 @@ import {
 import { ILocation, ILocationQueryRequest } from '../types/location.types.js';
 import { ILocationService } from '../types/location.types.js';
 import { IAvailabilityService } from '../types/availability.types.js';
+import { IMatrixAPIClient } from '../types/api.types.js';
+import { IAuthenticationManager } from '../types/authentication.types.js';
+import { IConfigurationManager } from '../config/config-manager.js';
 import { FacilityParser } from './facility-parser.js';
 
 /**
@@ -16,14 +19,40 @@ export class SearchService implements ISearchService {
   private locationService: ILocationService;
   private availabilityService: IAvailabilityService;
   private facilityParser: FacilityParser;
+  private apiClient: IMatrixAPIClient;
+  private authManager: IAuthenticationManager;
+  private configManager: IConfigurationManager;
   
   constructor(
     locationService: ILocationService,
-    availabilityService: IAvailabilityService
+    availabilityService: IAvailabilityService,
+    apiClient: IMatrixAPIClient,
+    authManager: IAuthenticationManager,
+    configManager: IConfigurationManager
   ) {
     this.locationService = locationService;
     this.availabilityService = availabilityService;
+    this.apiClient = apiClient;
+    this.authManager = authManager;
+    this.configManager = configManager;
     this.facilityParser = new FacilityParser();
+  }
+
+  /**
+   * Flatten location hierarchy to get all locations at all levels
+   */
+  private flattenLocationHierarchy(locations: ILocation[]): ILocation[] {
+    const flattened: ILocation[] = [];
+    
+    const processLocation = (location: ILocation) => {
+      flattened.push(location);
+      if (location.locations && Array.isArray(location.locations)) {
+        location.locations.forEach(processLocation);
+      }
+    };
+    
+    locations.forEach(processLocation);
+    return flattened;
   }
   
   /**
@@ -49,49 +78,78 @@ export class SearchService implements ISearchService {
       }
     }
     
-    // Build query for location hierarchy
-    const queryRequest: Record<string, unknown> = {
-      includeFacilities: true,
-      includeChildren: true,
-      isBookable: true
-    };
+    // Build query - use booking API for date-specific searches
+    let locations: ILocation[] = [];
     
-    if (request.parentLocationId) {
-      queryRequest['parentId'] = request.parentLocationId;
+    if (request.dateFrom && request.dateTo) {
+      // Use booking API to get actual bookable rooms with availability
+      const credentials = await this.authManager.getCredentials();
+      // Get booking category from config
+      const config = this.configManager.getConfig();
+      const bookingResponse = await this.apiClient.getAllBookings(
+        credentials,
+        config.defaultBookingCategory,
+        request.dateFrom,
+        request.dateTo,
+        request.parentLocationId
+      );
+      
+      locations = bookingResponse.locations || [];
+    } else {
+      // Fall back to location hierarchy for non-date searches
+      const queryRequest: Record<string, unknown> = {
+        includeFacilities: true,
+        includeChildren: true
+      };
+      
+      if (request.parentLocationId) {
+        queryRequest['parentId'] = request.parentLocationId;
+      }
+      
+      const hierarchy = await this.locationService.getLocationHierarchy(queryRequest as ILocationQueryRequest);
+      locations = this.flattenLocationHierarchy(hierarchy.locations || []);
     }
     
-    const hierarchy = await this.locationService.getLocationHierarchy(queryRequest as ILocationQueryRequest);
-    
-    let locations = hierarchy.locations || [];
     const totalLocations = locations.length;
     
+    // Removed debug logging
+    
     // If no locations found and we haven't tried without parent filter, try global search
-    if (locations.length === 0 && request.parentLocationId) {
-      const globalQuery = { ...queryRequest };
-      delete globalQuery['parentId'];
+    if (locations.length === 0 && request.parentLocationId && !request.dateFrom) {
+      const globalQuery: Record<string, unknown> = {
+        includeFacilities: true,
+        includeChildren: true
+      };
       const globalHierarchy = await this.locationService.getLocationHierarchy(globalQuery as ILocationQueryRequest);
-      locations = globalHierarchy.locations || [];
+      locations = this.flattenLocationHierarchy(globalHierarchy.locations || []);
     }
     
     // Filter by location kind if specified
     if (request.locationKind) {
-      locations = locations.filter(loc => loc.kind === request.locationKind);
-      appliedFilters.push(`kind:${request.locationKind}`);
+      // Special handling: 'ROOM' means locations with capacity for meetings
+      if (request.locationKind === 'ROOM') {
+        // Don't filter by kind - instead let capacity filter find actual rooms
+        // Meeting rooms might be any kind but will have capacity > 1
+        appliedFilters.push('meeting spaces');
+      } else {
+        locations = locations.filter(loc => loc.kind === request.locationKind);
+        appliedFilters.push(`kind:${request.locationKind}`);
+      }
     }
     
     // Filter by capacity if specified
     if (capacity && capacity > 0) {
       locations = locations.filter(loc => {
-        // For rooms, check explicit capacity
-        if (loc.kind === 'ROOM' && loc.capacity) {
+        // Check any location with explicit capacity
+        if (loc.capacity) {
           return loc.capacity >= capacity;
         }
         // For desks, assume capacity of 1
         if (loc.kind === 'DESK') {
           return capacity <= 1;
         }
-        // For other types, check if capacity is defined
-        return !loc.capacity || loc.capacity >= capacity;
+        // For locations without capacity, include them (might be bookable spaces)
+        return true;
       });
       appliedFilters.push(`capacity>=${capacity}`);
     }
@@ -223,12 +281,13 @@ export class SearchService implements ISearchService {
       if (request.dateFrom && request.dateTo) {
         availabilityChecked++;
         try {
-          const availability = await this.availabilityService.checkAvailability({
+          const availRequest = {
             locationId: scoredLoc.location.id,
             dateFrom: request.dateFrom,
             dateTo: request.dateTo,
-            bookingCategory: this.getBookingCategory(scoredLoc.location.kind)
-          });
+          };
+          
+          const availability = await this.availabilityService.checkAvailability(availRequest);
           
           // Check if available is an array with slots
           const isAvailable = Array.isArray(availability.available) && availability.available.length > 0;
@@ -363,18 +422,4 @@ export class SearchService implements ISearchService {
     return response.results.map(r => r.location);
   }
   
-  /**
-   * Get booking category based on location kind
-   */
-  private getBookingCategory(kind?: string): number {
-    switch (kind) {
-      case 'ROOM':
-        return 9000002; // Room booking category
-      case 'DESK':
-      case 'DESK_BANK':
-        return 9000001; // Desk booking category
-      default:
-        return 9000001; // Default to desk
-    }
-  }
 }

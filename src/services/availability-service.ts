@@ -5,14 +5,16 @@ import { IAuthenticationManager } from '../types/authentication.types.js';
 
 export class AvailabilityService implements IAvailabilityService {
   private apiClient: IMatrixAPIClient;
+  private configManager: IConfigurationManager;
   private authManager: IAuthenticationManager;
 
   constructor(
     apiClient: IMatrixAPIClient,
-    _configManager: IConfigurationManager,
+    configManager: IConfigurationManager,
     authManager: IAuthenticationManager
   ) {
     this.apiClient = apiClient;
+    this.configManager = configManager;
     this.authManager = authManager;
   }
 
@@ -46,9 +48,13 @@ export class AvailabilityService implements IAvailabilityService {
     const request: IAvailabilityRequest = {
       locationId,
       dateFrom,
-      dateTo,
-      bookingCategory: bookingCategory || 9000001 // Default to desk category
+      dateTo
     };
+    
+    const defaultCategory = bookingCategory || this.configManager.getConfig().defaultBookingCategory;
+    if (defaultCategory) {
+      request.bookingCategory = defaultCategory;
+    }
     
     return this.checkAvailability(request);
   }
@@ -58,11 +64,17 @@ export class AvailabilityService implements IAvailabilityService {
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     
-    return {
+    const result: IAvailabilityRequest = {
       locationId: request.locationId || 1000001, // Default location
       dateFrom: request.dateFrom || now.toISOString(),
-      dateTo: request.dateTo || tomorrow.toISOString(),
-      bookingCategory: request.bookingCategory || 9000001 // Default desk category
+      dateTo: request.dateTo || tomorrow.toISOString()
     };
+    
+    const category = request.bookingCategory || this.configManager.getConfig().defaultBookingCategory;
+    if (category) {
+      result.bookingCategory = category;
+    }
+    
+    return result;
   }
 }

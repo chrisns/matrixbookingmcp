@@ -4,6 +4,7 @@ export interface IServerConfig {
   matrixUsername: string;
   matrixPassword: string;
   matrixPreferredLocation: string;
+  defaultBookingCategory?: number;
   apiTimeout: number;
   apiBaseUrl: string;
   cacheEnabled: boolean;
@@ -69,7 +70,13 @@ export class ConfigurationManager implements IConfigurationManager {
     const cacheEnabledString = process.env['CACHE_ENABLED'] || 'true';
     const cacheEnabled = cacheEnabledString.toLowerCase() !== 'false';
 
-    return {
+    const bookingCategoryString = process.env['MATRIX_DEFAULT_BOOKING_CATEGORY'];
+    let defaultBookingCategory: number | undefined;
+    if (bookingCategoryString) {
+      defaultBookingCategory = parseInt(bookingCategoryString, 10);
+    }
+
+    const config: IServerConfig = {
       matrixUsername: process.env['MATRIX_USERNAME']!,
       matrixPassword: process.env['MATRIX_PASSWORD']!,
       matrixPreferredLocation: process.env['MATRIX_PREFERED_LOCATION']!,
@@ -77,5 +84,11 @@ export class ConfigurationManager implements IConfigurationManager {
       apiBaseUrl: process.env['MATRIX_API_BASE_URL'] || 'https://app.matrixbooking.com/api/v1',
       cacheEnabled
     };
+    
+    if (defaultBookingCategory !== undefined) {
+      config.defaultBookingCategory = defaultBookingCategory;
+    }
+    
+    return config;
   }
 }
