@@ -52,7 +52,7 @@
     "@anthropic-ai/claude-code": "^1.0.98",
     "@eslint/js": "^9.18.0",
     "@types/node": "^22.10.5",
-    "@types/uuid": "^10.0.0",
+    "@types/uuid": "^11.0.0",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
     "@vitest/coverage-v8": "^3.2.4",
