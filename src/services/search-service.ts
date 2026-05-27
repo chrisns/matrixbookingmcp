@@ -79,7 +79,7 @@ export class SearchService implements ISearchService {
     }
     
     // Build query - use booking API for date-specific searches
-    let locations: ILocation[] = [];
+    let locations: ILocation[];
     
     if (request.dateFrom && request.dateTo) {
       // Use booking API to get actual bookable rooms with availability

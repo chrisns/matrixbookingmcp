@@ -154,7 +154,7 @@ export class BookingService implements IBookingService {
       if (error instanceof Error && error.message.includes('not found in organization')) {
         throw error;
       }
-      throw new Error(`Error resolving location "${searchTerm}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Error resolving location "${searchTerm}": ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
 

@@ -35,7 +35,7 @@ export class AvailabilityService implements IAvailabilityService {
         throw error;
       }
       
-      throw new Error('Failed to check availability');
+      throw new Error('Failed to check availability', { cause: error });
     }
   }
 

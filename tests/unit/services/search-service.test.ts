@@ -447,18 +447,22 @@ describe('SearchService', () => {
     
     it('should parse "tomorrow" time references', async () => {
       setupMockHierarchy();
-      const today = new Date('2024-01-01T10:00:00');
-      vi.spyOn(global, 'Date').mockImplementation(() => today as any);
-      
-      await searchService.searchByQuery('Book a room for tomorrow');
-      
-      const expectedTomorrow = new Date('2024-01-02T09:00:00');
-      
-      expect(mockApiClient.getAllBookings).toHaveBeenCalled();
-      const callArgs = (mockApiClient.getAllBookings as any).mock.calls[0];
-      // getAllBookings takes (credentials, bookingCategory, dateFrom, dateTo, locationId)
-      const dateFrom = callArgs[2];
-      expect(new Date(dateFrom).toISOString()).toBe(expectedTomorrow.toISOString());
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T10:00:00'));
+
+      try {
+        await searchService.searchByQuery('Book a room for tomorrow');
+
+        const expectedTomorrow = new Date('2024-01-02T09:00:00');
+
+        expect(mockApiClient.getAllBookings).toHaveBeenCalled();
+        const callArgs = (mockApiClient.getAllBookings as any).mock.calls[0];
+        // getAllBookings takes (credentials, bookingCategory, dateFrom, dateTo, locationId)
+        const dateFrom = callArgs[2];
+        expect(new Date(dateFrom).toISOString()).toBe(expectedTomorrow.toISOString());
+      } finally {
+        vi.useRealTimers();
+      }
     });
     
     it.skip('should handle queries without special requirements', async () => {

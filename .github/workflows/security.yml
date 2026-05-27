@@ -10,4 +10,6 @@ jobs:
     uses: chrisns/.github/.github/workflows/security-scan.yml@main
     permissions:
       security-events: write
+      contents: read
+      actions: read
       statuses: write
