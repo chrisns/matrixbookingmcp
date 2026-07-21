@@ -58,7 +58,7 @@
     "@vitest/ui": "^4.1.7",
     "eslint": "^10.4.0",
     "msw": "^2.8.6",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.0",
     "vitest": "^4.1.7"
   },
   "engines": {
